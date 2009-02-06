@@ -42,9 +42,33 @@ tcp_session * tcp_session_find(tcp_session ** sessions, int n_sessions,struct ip
 /****************************
  * 	does this session have at least len contiguous bytes queued?
  * 	if yes, copy them to data, but don't dequeue, return 1
+ * 	if not enough buffer, return -1
  * 	else return 0
  */
-int tcp_session_peek(tcp_session * ts, char * data, int len);
+int tcp_session_peek(tcp_session * ts, char * data, int len)
+{
+	tcp_frag *tf;
+	int index=0;
+	uint32_t seqno;
+	assert(ts);
+
+	tf = ts->next;
+	seqno = ts->seqno;
+	while(tf)
+	{
+		if(seqno != tf->start_seq)	// is the new fragment contiguous with the last?
+			return 0;
+		if(len<(index+tf->len))
+			return -1;	// not enough buffer sent to copy next fragment
+		memcpy(&data[index],tf->data,tf->len);
+		seqno +=len;		// this will autowrap, no worries about PAWS
+		index+=len;
+		if(index>=len)		// did we find all that we were looking for?
+			return 1;
+		tf=tf->next;
+	}
+	return 0;	// ran out of fragments before finding len bytes
+}
 
 /****************************
  * 	add this fragment to this session
