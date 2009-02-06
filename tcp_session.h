@@ -1,6 +1,9 @@
 #ifndef TCP_SESSION_H
 #define TCP_SESSION_H
 
+// hack to get uint32_t etc..
+#include <openflow/openflow.h>
+
 typedef struct tcp_session {
 	uint32_t sip;
 	uint32_t dip;

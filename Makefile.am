@@ -14,14 +14,14 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 
 
 bin_PROGRAMS=ofdump
-lib_LIBRARIES=oftrace.a
+lib_LIBRARIES=liboftrace.a
 
-oftrace_SOURCES= oftrace.c 	\
+liboftrace_a_SOURCES= oftrace.c 	\
 		utils.c \
 		tcp_session.c
 
 ofdump_SOURCES = ofdump.c
-ofdump_LDADD = oftrace.a
+ofdump_LDADD = liboftrace.a
 
 count: 
 	@wc -l $(oftrace_SOURCES) | sort -n
