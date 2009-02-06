@@ -1,165 +1,66 @@
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <strings.h>
 
-#include <arpa/inet.h>
-
-#include <net/ethernet.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/udp.h>
-
-#include <openflow/openflow.h>
 #include "oftrace.h"
+#include "tcp_session.h"
+#include "utils.h"
 
-#ifndef BUFLEN
-// max packetsize * fudge factor of two
-#define BUFLEN (65536<<1)
-#endif
-
-typedef union openflow_msg_type {
-	struct ofp_packet_in * packet_in;
-	struct ofp_packet_out * packet_out;
-	struct ofp_flow_mod * flow_mod;
-} openflow_msg_type;
-
-typedef struct openflow_msg
-{
-	// where the data is stored
-	unsigned char data[BUFLEN];
-	int captured;
-	char more_messages_in_packet;	// are there multiple openflow messages in the same packet?
-	struct pcaprec_hdr_s phdr;
-	// convenience pointers
-	struct ether_header * ether;
-	struct iphdr * ip;
-	struct tcphdr * tcp;
-	struct ofp_header * ofph;
-	union openflow_msg_type type;
-} openflow_msg;
-
-int read_pcap_header(FILE * pcap);
-int do_analyze(FILE * pcap, uint32_t ip, int port);
-int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,openflow_msg * msg);
-
-/************************
- * main()
- *
- */
-
-int main(int argc, char * argv[])
-{
-	FILE * pcap=NULL;
-	char * filename = "openflow.trace";
-	char * controller = "0.0.0.0";
-	int port = OFP_TCP_PORT;
-	uint32_t controller_ip;
-	// FIXME: parse options from cmdline
-	if(argc>1)
-		filename=argv[1];
-	if(argc>2)
-		controller=argv[2];
-	if(argc>3)
-		port=atoi(argv[3]);
-	if(!strcmp(controller,"0.0.0.0"))
-		fprintf(stderr,"Reading from pcap file %s for any controller ip on port %d\n",
-				filename,port);
-	else
-		fprintf(stderr,"Reading from pcap file %s for controller %s on port %d\n",
-				filename,controller,port);
-	inet_pton(AF_INET,controller,&controller_ip);	// FIXME: use getaddrinfo
-	pcap = fopen(filename,"r");
-	if(!pcap)
-	{
-		fprintf(stderr,"Failed to open %s ; exiting\n",filename);
-		perror("fopen");
-		exit(1);
-	}
-	if(read_pcap_header(pcap)!=1)
-		return 0;
-	return do_analyze(pcap,controller_ip, port);
-}
-/************************************************************************
- * do_analyze:
- * 	analyze openflow msgs from the given file
- */
-
-int do_analyze(FILE * pcap, uint32_t ip, int port)
-{
-	int count = 0;
-	openflow_msg m;
-	char dst_ip[BUFLEN];
-	char src_ip[BUFLEN];
-	struct timeval start,diff;
-	start.tv_sec = start.tv_usec= 0;	
-	memset(&m,sizeof(m),0);	// zero msg contents
-	// for each openflow msg
-	while( get_next_openflow_msg(pcap, ip, port, &m) != 0)
-	{
-		count ++;
-		if(start.tv_sec == 0)
-		{
-			start.tv_sec = m.phdr.ts_sec;
-			start.tv_usec = m.phdr.ts_usec;
-		}
-		diff.tv_sec = m.phdr.ts_sec - start.tv_sec;
-		if(m.phdr.ts_usec < start.tv_usec)
-		{
-			diff.tv_usec = m.phdr.ts_usec + 100000 + start.tv_usec;
-			diff.tv_sec--;
-		}
-		else
-			diff.tv_usec = m.phdr.ts_usec - start.tv_usec;
-		inet_ntop(AF_INET,&m.ip->saddr,src_ip,BUFLEN);
-		inet_ntop(AF_INET,&m.ip->daddr,dst_ip,BUFLEN);
-		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	TIME %lu.%.6lu\n",
-				src_ip,
-				ntohs(m.tcp->source),
-				dst_ip,
-				ntohs(m.tcp->dest),
-				m.ofph->type,
-				diff.tv_sec,
-				diff.tv_usec
-				);
-	}
-	fprintf(stderr,"Total OpenFlow Messages: %d\n",count);
-	return count;
-}
+struct oftrace {
+	int packet_count;
+	char * filename;
+	FILE * file;
+	int n_sessions;
+	int max_sessions;
+	tcp_session ** sessions;
+	tcp_session * curr;
+	struct pcap_hdr_s ghdr;
+	int byte_format; 	// unused!
+};
 
 /**********************************************************
  * int read_pcap_header(FILE * pcap);
  * 	parse the global header of the pcap file
  * 	(mostly to get it out of the way)
  */
-int read_pcap_header(FILE * pcap)
+oftrace * oftrace_open(char * filename)
 {
-	struct pcap_hdr_s ghdr;
-	int err = fread(&ghdr, sizeof(ghdr),1,pcap);
+	oftrace * oft;
+	FILE * pcap;
+	int err;
+	oft = malloc_and_check(sizeof(oftrace));
+	bzero(oft,sizeof(oftrace));
+	pcap = fopen(filename,"r");
+	if(!pcap)
+	{
+		fprintf(stderr,"Failed to open %s ; exiting\n",filename);
+		perror("fopen");
+		return NULL;
+	}
+	err = fread(&oft->ghdr, sizeof(oft->ghdr),1,pcap);
 	if(err != 1)
 	{
 		fprintf(stderr," Short file read on pcap global header!\n");
 		perror("fread");
-		return 0;
+		return NULL;
 	}
-	if(ghdr.magic_number != PCAP_MAGIC)	// make sure the magic number is right
+	if(oft->ghdr.magic_number != PCAP_MAGIC)	// make sure the magic number is right
 	{
-		if(ghdr.magic_number == PCAP_BACKWARDS_MAGIC)
+		if(oft->ghdr.magic_number == PCAP_BACKWARDS_MAGIC)
 		{
 			fprintf(stderr,"The pcap magic number is backwards: byte ordering issues?\n");
 		}
 		else
 		{
 			fprintf(stderr,"Got %u for pcap magic number: are you sure this is a pcap file?\n",
-					ghdr.magic_number);
+					oft->ghdr.magic_number);
 		}
-		return 0;
+		return NULL;
 	}
-	assert(ghdr.network == DLT_EN10MB);	// currently, we only handle ethernet :-(
-	return 1;
+	assert(oft->ghdr.network == DLT_EN10MB);	// currently, we only handle ethernet :-(
+	oft->max_sessions = 10;			// will dynamically re-allocate - don't worry
+	oft->sessions = malloc_and_check(oft->max_sessions * sizeof(tcp_session));
+	oft->file=pcap;
+	return oft;
 }
 /**************************************************************************
  * int get_next_openflow_msg(FILE * pcap, int port,struct openflow_msg * msg);
@@ -171,7 +72,7 @@ int read_pcap_header(FILE * pcap)
  *
  * 	expects the caller not to modify info stored in mesg between calls
  */
-int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg * msg)
+int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * msg)
 {
 	int found=0;
 	int tries = 0;
@@ -204,10 +105,10 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 	while(found == 0)
 	{
 		tries++;
-		err= fread(&msg->phdr,sizeof(msg->phdr),1, pcap);	// grab a header
+		err= fread(&msg->phdr,sizeof(msg->phdr),1, oft->file);	// grab a header
 		if (err < 1)
 		{
-			if(!feof(pcap))
+			if(!feof(oft->file))
 			{
 				fprintf(stderr,"short file reading header -- terminating\n");
 				perror("fread");
@@ -215,7 +116,7 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 			return 0;	// not found; stop
 		}
 		msg->captured = msg->phdr.incl_len;
-		err = fread(msg->data,1,msg->phdr.incl_len,pcap);
+		err = fread(msg->data,1,msg->phdr.incl_len,oft->file);
 		if (err < msg->captured)
 		{
 			fprintf(stderr,"short file reading packet (%d bytes instead of %d) -- terminating\n",
