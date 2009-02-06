@@ -17,6 +17,8 @@ typedef struct buffer_id
 	uint16_t dport;
 	uint32_t b_id;
 	struct timeval ts;
+	char data[BUFLEN];
+	int datalen;
 	struct buffer_id * next;
 } buffer_id;
 
@@ -25,6 +27,7 @@ typedef struct buffer_id
  *
  */
 int calc_stats(oftrace * oft, uint32_t ip, int port);
+int count_list(buffer_id *b);
 
 int main(int argc, char * argv[])
 {
@@ -66,6 +69,8 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 	char dst_ip[BUFLEN];
 	char src_ip[BUFLEN];
 	struct timeval diff;
+	int etype;
+	struct ether_header * eth;
 	uint32_t id;
 	buffer_id * b, *b_list, *b_prev;
 	b_list = NULL;
@@ -77,16 +82,27 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 		{
 			case OFPT_PACKET_IN:
 				// create a new buffer_id struct and track this buffer_id
-				b = malloc_and_check(sizeof(buffer_id));
-				b->sip = m->ip->saddr;
-				b->dip = m->ip->daddr;
-				b->sport = m->tcp->source;
-				b->dport = m->tcp->dest;
-				b->b_id = m->ptr.packet_in->buffer_id;
-				b->ts.tv_sec = m->phdr.ts_sec;
-				b->ts.tv_usec = m->phdr.ts_usec;
-				b->next=b_list;
-				b_list = b;
+				eth = (struct ether_header * ) m->ptr.packet_in->data;
+				etype = ntohs(eth->ether_type);
+				if(etype != 0x88cc ) // don't record LLDP
+				//if(etype != 0x88cc && etype != ETHERTYPE_ARP) // don't record LLDP or ARP
+				// if(ntohs(eth->ether_type) == ETHERTYPE_IP) // don't record anything but IP
+				{
+					b = malloc_and_check(sizeof(buffer_id));
+					b->sip = m->ip->saddr;
+					b->dip = m->ip->daddr;
+					b->sport = m->tcp->source;
+					b->dport = m->tcp->dest;
+					b->b_id = m->ptr.packet_in->buffer_id;
+					b->ts.tv_sec = m->phdr.ts_sec;
+					b->ts.tv_usec = m->phdr.ts_usec;
+					b->datalen = ntohs(m->ofph->length) - offsetof(struct ofp_packet_in,data);
+					memcpy(b->data,m->ptr.packet_in->data,b->datalen);
+					b->next=b_list;
+					b_list = b;
+					if(etype != ETHERTYPE_IP && etype != ETHERTYPE_ARP)
+						fprintf(stderr,"ADDING packet_in ether_type=%.4x\n",etype);
+				}
 				break;
 			case OFPT_PACKET_OUT:
 			case OFPT_FLOW_MOD:
@@ -122,16 +138,17 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 					diff.tv_sec = m->phdr.ts_sec;
 					diff.tv_usec = m->phdr.ts_usec;
 					timersub(&diff,&b->ts,&diff);	// handy macro
-					printf("%ld.%.6ld 	secs_to_resp buf_id=%d in flow %s:%u -> %s:%u - %s\n",
+					if(b_prev)
+						b_prev->next=b->next;
+					else
+						b_list=b->next;
+					printf("%ld.%.6ld 	secs_to_resp buf_id=%d in flow %s:%u -> %s:%u - %s - %d queued\n",
 							diff.tv_sec, diff.tv_usec,
 							id,
 							src_ip, ntohs(m->tcp->source),
 							dst_ip, ntohs(m->tcp->dest),
-							m->type==OFPT_PACKET_OUT? "packet_out":"flow_mod");
-					if(b_prev)
-						b_prev=b->next;
-					else
-						b_list=b->next;
+							m->type==OFPT_PACKET_OUT? "packet_out":"flow_mod",
+							count_list(b_list));
 					free(b);
 				}
 				break;
@@ -140,3 +157,14 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 	return 0;
 }
 
+
+int count_list(buffer_id *b)
+{
+	int count=0;
+	while(b)
+	{
+		count++;
+		b=b->next;
+	}
+	return count;
+}
