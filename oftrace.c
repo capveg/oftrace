@@ -212,6 +212,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	// use the packet_in entry, even though
 	// it doesn't really matter; it works for all openflow msg types b/c it's a union
 	msg->ptr.packet_in = (struct ofp_packet_in * ) &msg->data[index];	
+	msg->type = msg->ofph->type;	// redundant, but useful
 	// done parsing; found a msg to return!
 	return msg;
 }
