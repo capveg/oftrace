@@ -18,9 +18,10 @@ struct oftrace {
 };
 
 /**********************************************************
- * int read_pcap_header(FILE * pcap);
- * 	parse the global header of the pcap file
+ * oftrace * oftrace_open(char * filename)
+ * 	open and parse the global header of the pcap file
  * 	(mostly to get it out of the way)
+ * 	and return a pointer to our oftrace context
  */
 oftrace * oftrace_open(char * filename)
 {
@@ -71,6 +72,8 @@ oftrace * oftrace_open(char * filename)
  * 	expects the caller to zero the message on first call (memset/bzero)
  *
  * 	expects the caller not to modify info stored in mesg between calls
+ *
+ * 	if ip == 0.0.0.0 ; acts as a wildcard and matches all ips
  */
 int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * msg)
 {
