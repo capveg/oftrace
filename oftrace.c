@@ -1,9 +1,20 @@
 #include <assert.h>
-#include <strings.h>
+#include <string.h>
 
 #include "oftrace.h"
 #include "tcp_session.h"
 #include "utils.h"
+
+typedef struct pcap_hdr_s {
+	uint32_t magic_number;   /* magic number */
+	uint16_t version_major;  /* major version number */
+	uint16_t version_minor;  /* minor version number */
+	int32_t  thiszone;       /* GMT to local correction */
+	uint32_t sigfigs;        /* accuracy of timestamps */
+	uint32_t snaplen;        /* max length of captured packets, in octets */
+	uint32_t network;        /* data link type */
+} pcap_hdr_t;
+
 
 struct oftrace {
 	int packet_count;
@@ -14,7 +25,7 @@ struct oftrace {
 	tcp_session ** sessions;
 	tcp_session * curr;
 	struct pcap_hdr_s ghdr;
-	int byte_format; 	// unused!
+	openflow_msg msg;	// where the current message is actually allocated
 };
 
 /**********************************************************
@@ -64,50 +75,47 @@ oftrace * oftrace_open(char * filename)
 	return oft;
 }
 /**************************************************************************
- * int get_next_openflow_msg(FILE * pcap, int port,struct openflow_msg * msg);
+ * int get_next_openflow_msg(oftrace *oft, int port)
  * 	keep reading until end_of_file or we find an openflow message;
  * 	if we find an openflow message, copy it into the databuf and fixup
  * 	the utility pointers
  *
- * 	expects the caller to zero the message on first call (memset/bzero)
+ * 	if we get an out-of-order packet, enqueue it on the session and keep going
  *
  * 	expects the caller not to modify info stored in mesg between calls
+ * 	(that's why we have the const)
  *
  * 	if ip == 0.0.0.0 ; acts as a wildcard and matches all ips
  */
-int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * msg)
+const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 {
 	int found=0;
-	int tries = 0;
 	int err;
 	int index;
+	openflow_msg * msg = &oft->msg;
+	struct ofp_header * ofph;
+	char tmp[BUFLEN];
+	int tmplen = sizeof(struct ofp_header);
 
-	if(msg->more_messages_in_packet==1)	// from previous call, are there multiple mesgs in this one tcp packet?
+	if(oft->curr)	// from previous call, are there multiple mesgs in this one tcp session?
 	{
-		index = sizeof(struct ether_header) + 
-				4 * msg->ip->ihl + 
-				4 * msg->tcp->doff +
-				ntohs(msg->ofph->length);
-		msg->ofph = (struct ofp_header *) &msg->data[index];
-		msg->type.packet_in = (struct ofp_packet_in *) &msg->data[index];
-		if((index+sizeof(struct ofp_header))<= msg->captured)
+		tmplen = sizeof(struct ofp_header);
+		if(tcp_session_peek(oft->curr,tmp,tmplen)==1)		// check to see if there is another ofp header queued in the session
 		{
-			index+=ntohs(msg->ofph->length);
-			if(index<= msg->captured)
-				found=1;
-			else 	// we didn't get all of the message
+			ofph = (struct ofp_header * ) tmp;
+			tmplen = ntohs(ofph->length);
+			if(tcp_session_peek(oft->curr,tmp,tmplen))
 			{
-				found=0;	// we thought we found a new msg, but it was truncated
-				fprintf(stderr,"OpenFlow message truncated -- skipping\n");
+				tcp_session_pull(oft->curr,tmplen);
+				index = sizeof(struct ether_header) + (msg->ip->ihl + msg->tcp->doff) * 4;
+				found = 1;
 			}
 		}
-		else
-			fprintf(stderr,"OpenFlow header truncated -- skipping\n");
 	}
 
 	while(found == 0)
 	{
-		tries++;
+		oft->packet_count++;
 		err= fread(&msg->phdr,sizeof(msg->phdr),1, oft->file);	// grab a header
 		if (err < 1)
 		{
@@ -116,7 +124,7 @@ int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * 
 				fprintf(stderr,"short file reading header -- terminating\n");
 				perror("fread");
 			}
-			return 0;	// not found; stop
+			return NULL;	// not found; stop
 		}
 		msg->captured = msg->phdr.incl_len;
 		err = fread(msg->data,1,msg->phdr.incl_len,oft->file);
@@ -125,7 +133,7 @@ int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * 
 			fprintf(stderr,"short file reading packet (%d bytes instead of %d) -- terminating\n",
 					err, msg->phdr.incl_len); 
 			perror("fread");
-			return 0;	// not found; stop
+			return NULL;	// not found; stop
 		}
 		index = 0;
 		// ethernet parsing
@@ -171,18 +179,51 @@ int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,struct openflow_msg * 
 					(! (msg->ip->daddr == ip && msg->tcp->dest == htons(port))))
 				continue;	// not to/from the controller
 		}
-		// OFP parsing
-		msg->ofph = (struct ofp_header * ) &msg->data[index];
-		// use the packet_in entry, even though
-		// it doesn't really matter
-		msg->type.packet_in = (struct ofp_packet_in * ) &msg->data[index];	
-		found=1;
-		index+=ntohs(msg->ofph->length);	// advance the index pointer
+		oft->curr = tcp_session_find(oft->sessions,oft->n_sessions,msg->ip, msg->tcp);
+		if(oft->curr == NULL)
+		{
+			// new session
+			oft->curr = tcp_session_new(msg->ip,msg->tcp);
+			oft->sessions[oft->n_sessions++]=oft->curr;	// add to list
+			if(oft->n_sessions>= oft->max_sessions)		// grow list if need be
+			{
+				oft->max_sessions*=2;
+				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session*)*oft->max_sessions);
+			}
+		}
+		// add this data to the sessions' tcp stream
+		tcp_session_add_frag(oft->curr,&msg->data[index],msg->captured,msg->phdr.orig_len);
+		tmplen = sizeof(struct ofp_header);
+		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// check to see if there is another ofp header queued in the session
+			continue;
+		ofph = (struct ofp_header * ) tmp;
+		tmplen = ntohs(ofph->length);
+		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// does there exist a full openflow msg buffered?
+			continue;
+		found =1;
+		tcp_session_pull(oft->curr,tmplen);
 	}
-	// assumes the index pointer is pointting just beyond the current openflow message
-	if(index< msg->captured)
-		msg->more_messages_in_packet=1;
-	else
-		msg->more_messages_in_packet=0;
-	return found;
+	// OFP parsing; new mesg is in tmp[] of length tmpbuf; index is set to the point to write the
+	// 	next packet
+	memcpy(&msg->data[index],tmp,tmplen);	// put new data into place
+	msg->ofph = (struct ofp_header * ) &msg->data[index];	// set convenience ptr
+	// use the packet_in entry, even though
+	// it doesn't really matter; it works for all openflow msg types b/c it's a union
+	msg->ptr.packet_in = (struct ofp_packet_in * ) &msg->data[index];	
+	// done parsing; found a msg to return!
+	return msg;
 }
+
+
+/******************************************************
+ * int oftrace_rewind(oftrace * oft);
+ * 	rewind to the top of the file
+ */
+
+int oftrace_rewind(oftrace * oft)
+{
+	assert(oft);
+	rewind(oft->file);
+	return 0;
+}
+

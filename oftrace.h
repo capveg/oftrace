@@ -26,17 +26,6 @@
 // #include <pcap.h>	// Ha! Fools.. pcap.h doesn't document any of this :-(
 // Grabbed from http://wiki.wireshark.org/Development/LibpcapFileFormat#head-d5fe7311203e1a2d569fd9de521699150c44f708
 //
-typedef struct pcap_hdr_s {
-	uint32_t magic_number;   /* magic number */
-	uint16_t version_major;  /* major version number */
-	uint16_t version_minor;  /* minor version number */
-	int32_t  thiszone;       /* GMT to local correction */
-	uint32_t sigfigs;        /* accuracy of timestamps */
-	uint32_t snaplen;        /* max length of captured packets, in octets */
-	uint32_t network;        /* data link type */
-} pcap_hdr_t;
-
-
 typedef struct pcaprec_hdr_s {
 	uint32_t ts_sec;         /* timestamp seconds */
 	uint32_t ts_usec;        /* timestamp microseconds */
@@ -44,11 +33,13 @@ typedef struct pcaprec_hdr_s {
 	uint32_t orig_len;       /* actual length of packet */
 } pcaprec_hdr_t;
 
-typedef union openflow_msg_type {
+// convenience pointers for some openflow messages
+
+typedef union openflow_msg_ptr {
 	struct ofp_packet_in * packet_in;
 	struct ofp_packet_out * packet_out;
 	struct ofp_flow_mod * flow_mod;
-} openflow_msg_type;
+} openflow_msg_ptr;
 
 /*********************************************************
  * Actual openflow message structure
@@ -59,16 +50,19 @@ typedef union openflow_msg_type {
 typedef struct openflow_msg
 {
 	// where the data is stored
-	unsigned char data[BUFLEN];
+	char data[BUFLEN];
 	int captured;
-	char more_messages_in_packet;	// are there multiple openflow messages in the same packet?
-	struct pcaprec_hdr_s phdr;
+	struct pcaprec_hdr_s phdr;	// when the packet was received; for fragments, this actually the packet that 
+					// 	filled in the whole that cause this message to be pushed to the application
+					// 	- subtle but important distinction
+	// OFPT_something
+	uint16_t type;		
 	// convenience pointers
 	struct ether_header * ether;
 	struct iphdr * ip;
 	struct tcphdr * tcp;
 	struct ofp_header * ofph;
-	union openflow_msg_type type;
+	union openflow_msg_ptr ptr;
 } openflow_msg;
 
 struct oftrace;
@@ -86,7 +80,7 @@ oftrace * oftrace_open(char * pcapfile);
 // pass an oftrace, and an IP and PORT to look for,
 // 	and a reference to an openflow_msg struct
 // 	return 1 if found, 0 otherwise 
-int oftrace_next_msg(oftrace * oft, uint32_t ip, int port,openflow_msg * msg);
+const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port);
 
 // restart tracing from the beginning of the pcap file (implicit on open) 
 int oftrace_rewind(oftrace * oft);

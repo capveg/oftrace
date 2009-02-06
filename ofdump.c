@@ -50,37 +50,37 @@ int main(int argc, char * argv[])
 int do_analyze(oftrace * oft, uint32_t ip, int port)
 {
 	int count = 0;
-	openflow_msg m;
+	const openflow_msg *m;
 	char dst_ip[BUFLEN];
 	char src_ip[BUFLEN];
 	struct timeval start,diff;
 	start.tv_sec = start.tv_usec= 0;	
 	memset(&m,sizeof(m),0);	// zero msg contents
 	// for each openflow msg
-	while( oftrace_next_msg(oft, ip, port, &m) != 0)
+	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
 		count ++;
 		if(start.tv_sec == 0)
 		{
-			start.tv_sec = m.phdr.ts_sec;
-			start.tv_usec = m.phdr.ts_usec;
+			start.tv_sec = m->phdr.ts_sec;
+			start.tv_usec = m->phdr.ts_usec;
 		}
-		diff.tv_sec = m.phdr.ts_sec - start.tv_sec;
-		if(m.phdr.ts_usec < start.tv_usec)
+		diff.tv_sec = m->phdr.ts_sec - start.tv_sec;
+		if(m->phdr.ts_usec < start.tv_usec)
 		{
-			diff.tv_usec = m.phdr.ts_usec + 100000 + start.tv_usec;
+			diff.tv_usec = m->phdr.ts_usec + 100000 + start.tv_usec;
 			diff.tv_sec--;
 		}
 		else
-			diff.tv_usec = m.phdr.ts_usec - start.tv_usec;
-		inet_ntop(AF_INET,&m.ip->saddr,src_ip,BUFLEN);
-		inet_ntop(AF_INET,&m.ip->daddr,dst_ip,BUFLEN);
+			diff.tv_usec = m->phdr.ts_usec - start.tv_usec;
+		inet_ntop(AF_INET,&m->ip->saddr,src_ip,BUFLEN);
+		inet_ntop(AF_INET,&m->ip->daddr,dst_ip,BUFLEN);
 		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	TIME %lu.%.6lu\n",
 				src_ip,
-				ntohs(m.tcp->source),
+				ntohs(m->tcp->source),
 				dst_ip,
-				ntohs(m.tcp->dest),
-				m.ofph->type,
+				ntohs(m->tcp->dest),
+				m->ofph->type,
 				diff.tv_sec,
 				diff.tv_usec
 				);
