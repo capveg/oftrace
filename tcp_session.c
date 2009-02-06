@@ -1,3 +1,6 @@
+#include <assert.h>
+#include <string.h>
+
 #include "tcp_session.h"
 #include "utils.h"
 
