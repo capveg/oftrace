@@ -48,8 +48,4 @@ int tcp_session_add_frag(tcp_session * ts, char * data, int cap_len, int full_le
  */
 int tcp_session_pull(tcp_session * ts, int len);
 
-/****************************
- * 	return the current seqno
- */
-uint32_t tcp_session_seqno(tcp_session * ts);
 #endif
