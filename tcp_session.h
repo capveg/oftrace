@@ -6,7 +6,7 @@
 typedef struct tcp_frag {
 	uint32_t start_seq;
 	uint16_t len;
-	char * data;
+	char data[BUFLEN];
 	struct tcp_frag * next;
 } tcp_frag;
 
@@ -15,7 +15,7 @@ typedef struct tcp_session {
 	uint32_t dip;
 	uint16_t sport;	// stored in network byte order!
 	uint16_t dport;	// stored in network byte order!
-	uint32_t seqno;
+	uint32_t seqno;	// stored in HOST byte order
 	tcp_frag * next;
 } tcp_session;
 
@@ -38,7 +38,7 @@ int tcp_session_peek(tcp_session * ts, char * data, int len);
 /****************************
  * 	add this fragment to this session
  */
-int tcp_session_add_frag(tcp_session * ts, char * data, int cap_len, int full_len);
+int tcp_session_add_frag(tcp_session * ts, uint32_t seqno, char * data, int cap_len, int full_len);
 
 /****************************
  * 	remove/dequeue len bytes from this session

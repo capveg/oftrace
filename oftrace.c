@@ -95,7 +95,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	openflow_msg * msg = &oft->msg;
 	struct ofp_header * ofph;
 	char tmp[BUFLEN];
-	int tmplen = sizeof(struct ofp_header);
+	int tmplen = 0;
 
 	if(oft->curr)	// from previous call, are there multiple mesgs in this one tcp session?
 	{
@@ -112,7 +112,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			}
 		}
 	}
-
+	// go into this loop if we didn't find anything in the previous test
 	while(found == 0)
 	{
 		oft->packet_count++;
@@ -192,7 +192,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			}
 		}
 		// add this data to the sessions' tcp stream
-		tcp_session_add_frag(oft->curr,&msg->data[index],msg->captured,msg->phdr.orig_len);
+		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),&msg->data[index],msg->captured,msg->phdr.orig_len);
 		tmplen = sizeof(struct ofp_header);
 		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// check to see if there is another ofp header queued in the session
 			continue;
@@ -203,6 +203,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		found =1;
 		tcp_session_pull(oft->curr,tmplen);
 	}
+	assert(found==1);
+	assert(tmplen>0);
 	// OFP parsing; new mesg is in tmp[] of length tmpbuf; index is set to the point to write the
 	// 	next packet
 	memcpy(&msg->data[index],tmp,tmplen);	// put new data into place
