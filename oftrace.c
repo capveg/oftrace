@@ -227,6 +227,8 @@ int oftrace_rewind(oftrace * oft)
 {
 	assert(oft);
 	rewind(oft->file);
+	oft->curr=NULL;
+	oft->n_sessions=0;
 	return 0;
 }
 
