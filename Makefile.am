@@ -4,8 +4,8 @@ AUTOMAKE_OPTIONS=-Wall -Werror foreign
 OFSRC=@openflowsrc@
 
 rundir = $(localstatedir)/run
-AM_CFLAGS = -Wall -Werror -pg
-AM_LDFLAGS = -pg
+AM_CFLAGS = -Wall -Werror -g -O0
+AM_LDFLAGS = -g -O0
 
 CFLAGS+=-I$(OFSRC)/include -I$(OFSRC)/lib
 LDFLAGS+=-L$(OFSRC)/lib -lm
@@ -24,4 +24,4 @@ ofdump_SOURCES = ofdump.c
 ofdump_LDADD = liboftrace.a
 
 count: 
-	@wc -l $(oftrace_SOURCES) | sort -n
+	@wc -l $(liboftrace_a_SOURCES) $(oftrace_SOURCES) | sort -n

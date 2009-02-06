@@ -53,6 +53,7 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 	tcp_frag *tf;
 	int index=0;
 	uint32_t seqno;
+	int min;
 	assert(ts);
 
 	tf = ts->next;
@@ -61,11 +62,10 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 	{
 		if(seqno != tf->start_seq)	// is the new fragment contiguous with the last?
 			return 0;
-		if(len<(index+tf->len))
-			return -1;	// not enough buffer sent to copy next fragment
-		memcpy(&data[index],tf->data,tf->len);
-		seqno +=len;		// this will autowrap, no worries about PAWS
-		index+=len;
+		min = MIN(tf->len,len-index);
+		memcpy(&data[index],tf->data,min);
+		seqno +=min;		// this will autowrap, no worries about PAWS
+		index+=min;
 		if(index>=len)		// did we find all that we were looking for?
 			return 1;
 		tf=tf->next;
@@ -135,7 +135,10 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 				if(prev)
 					prev->next = neo;
 				else
+				{
 					ts->next = neo;
+					ts->seqno = neo->start_seq;
+				}
 			}
 			if((seqno+full_len) > end_overlap)	// is there something new *after* the overlap?
 			{
@@ -159,7 +162,10 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	if(prev)
 		prev->next = neo;
 	else
+	{
 		ts->next = neo;
+		ts->seqno = neo->start_seq;
+	}
 	free(orig_data);
 	return 0;
 }
@@ -177,14 +183,14 @@ int tcp_session_pull(tcp_session * ts, int len)
 	while(len > 0)
 	{
 		curr = ts->next;
-		if(curr->start_seq != ts->seqno)
-		{
-			fprintf(stderr,"WARNING: tried to tcp_session_pull() non-contiguous data\n");
-			return -1;
-		}
 		if(curr == NULL)
 		{
 			fprintf(stderr,"WARNING: tried to tcp_session_pull() more than was there :-(\n");
+			return -1;
+		}
+		if(curr->start_seq != ts->seqno)
+		{
+			fprintf(stderr,"WARNING: tried to tcp_session_pull() non-contiguous data\n");
 			return -1;
 		}
 		if(curr->len <= len) 	// do we erase the whole fragment?

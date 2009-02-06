@@ -192,7 +192,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			}
 		}
 		// add this data to the sessions' tcp stream
-		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),&msg->data[index],msg->captured,msg->phdr.orig_len);
+		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),&msg->data[index],msg->captured-index,msg->phdr.orig_len-index);
 		tmplen = sizeof(struct ofp_header);
 		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// check to see if there is another ofp header queued in the session
 			continue;

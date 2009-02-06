@@ -75,12 +75,13 @@ int do_analyze(oftrace * oft, uint32_t ip, int port)
 			diff.tv_usec = m->phdr.ts_usec - start.tv_usec;
 		inet_ntop(AF_INET,&m->ip->saddr,src_ip,BUFLEN);
 		inet_ntop(AF_INET,&m->ip->daddr,dst_ip,BUFLEN);
-		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	TIME %lu.%.6lu\n",
+		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	LEN %d	TIME %lu.%.6lu\n",
 				src_ip,
 				ntohs(m->tcp->source),
 				dst_ip,
 				ntohs(m->tcp->dest),
 				m->ofph->type,
+				ntohs(m->ofph->length),
 				diff.tv_sec,
 				diff.tv_usec
 				);
