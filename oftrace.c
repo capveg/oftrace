@@ -95,7 +95,7 @@ int do_analyze(FILE * pcap, uint32_t ip, int port)
 	char dst_ip[BUFLEN];
 	char src_ip[BUFLEN];
 	struct timeval start,diff;
-	start.tv_sec = 0;	
+	start.tv_sec = start.tv_usec= 0;	
 	memset(&m,sizeof(m),0);	// zero msg contents
 	// for each openflow msg
 	while( get_next_openflow_msg(pcap, ip, port, &m) != 0)
