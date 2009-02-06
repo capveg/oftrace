@@ -35,4 +35,4 @@ oftracemodule.so: liboftrace.a oftrace_wrap.o
 	ld -shared $(subst .c,.o,$(liboftrace_a_SOURCES)) oftrace_wrap.o -o $@
 
 count: 
-	@wc -l $(ofstats_SOURCES) $(liboftrace_a_SOURCES) $(oftrace_SOURCES) | sort -n
+	@wc -l $(ofstats_SOURCES) $(liboftrace_a_SOURCES) $(ofdump_SOURCES) | sort -n
