@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <arpa/inet.h>
@@ -31,6 +32,7 @@ typedef struct openflow_msg
 	// where the data is stored
 	unsigned char data[BUFLEN];
 	int captured;
+	char more_messages_in_packet;	// are there multiple openflow messages in the same packet?
 	struct pcaprec_hdr_s phdr;
 	// convenience pointers
 	struct ether_header * ether;
@@ -53,7 +55,7 @@ int main(int argc, char * argv[])
 {
 	FILE * pcap=NULL;
 	char * filename = "openflow.trace";
-	char * controller = "172.27.74.150";
+	char * controller = "0.0.0.0";
 	int port = OFP_TCP_PORT;
 	uint32_t controller_ip;
 	// FIXME: parse options from cmdline
@@ -63,10 +65,14 @@ int main(int argc, char * argv[])
 		controller=argv[2];
 	if(argc>3)
 		port=atoi(argv[3]);
-	fprintf(stderr,"Defaulting to reading from pcap file %s for controller %s on port %d\n",
-			filename,controller,port);
-	pcap = fopen(filename,"r");
+	if(!strcmp(controller,"0.0.0.0"))
+		fprintf(stderr,"Reading from pcap file %s for any controller ip on port %d\n",
+				filename,port);
+	else
+		fprintf(stderr,"Reading from pcap file %s for controller %s on port %d\n",
+				filename,controller,port);
 	inet_pton(AF_INET,controller,&controller_ip);	// FIXME: use getaddrinfo
+	pcap = fopen(filename,"r");
 	if(!pcap)
 	{
 		fprintf(stderr,"Failed to open %s ; exiting\n",filename);
@@ -90,6 +96,7 @@ int do_analyze(FILE * pcap, uint32_t ip, int port)
 	char src_ip[BUFLEN];
 	struct timeval start,diff;
 	start.tv_sec = 0;	
+	memset(&m,sizeof(m),0);	// zero msg contents
 	// for each openflow msg
 	while( get_next_openflow_msg(pcap, ip, port, &m) != 0)
 	{
@@ -159,6 +166,10 @@ int read_pcap_header(FILE * pcap)
  * 	keep reading until end_of_file or we find an openflow message;
  * 	if we find an openflow message, copy it into the databuf and fixup
  * 	the utility pointers
+ *
+ * 	expects the caller to zero the message on first call (memset/bzero)
+ *
+ * 	expects the caller not to modify info stored in mesg between calls
  */
 int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg * msg)
 {
@@ -166,14 +177,41 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 	int tries = 0;
 	int err;
 	int index;
+
+	if(msg->more_messages_in_packet==1)	// from previous call, are there multiple mesgs in this one tcp packet?
+	{
+		index = sizeof(struct ether_header) + 
+				4 * msg->ip->ihl + 
+				4 * msg->tcp->doff +
+				ntohs(msg->ofph->length);
+		msg->ofph = (struct ofp_header *) &msg->data[index];
+		msg->type.packet_in = (struct ofp_packet_in *) &msg->data[index];
+		if((index+sizeof(struct ofp_header))<= msg->captured)
+		{
+			index+=ntohs(msg->ofph->length);
+			if(index<= msg->captured)
+				found=1;
+			else 	// we didn't get all of the message
+			{
+				found=0;	// we thought we found a new msg, but it was truncated
+				fprintf(stderr,"OpenFlow message truncated -- skipping\n");
+			}
+		}
+		else
+			fprintf(stderr,"OpenFlow header truncated -- skipping\n");
+	}
+
 	while(found == 0)
 	{
 		tries++;
 		err= fread(&msg->phdr,sizeof(msg->phdr),1, pcap);	// grab a header
 		if (err < 1)
 		{
-			fprintf(stderr,"short file reading header -- terminating\n");
-			perror("fread");
+			if(!feof(pcap))
+			{
+				fprintf(stderr,"short file reading header -- terminating\n");
+				perror("fread");
+			}
 			return 0;	// not found; stop
 		}
 		msg->captured = msg->phdr.incl_len;
@@ -217,14 +255,30 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 		if(msg->captured <= index)
 			continue;	// tcp packet has no payload (e.g., an ACK)
 		// Is this to or from the controller?
-		if((!(msg->ip->saddr == ip && msg->tcp->source == htons(port))) &&
-				(! (msg->ip->daddr == ip && msg->tcp->dest == htons(port))))
-			continue;	// not to/from the controller
+		if ( ip == 0 ) // do we care about the controller's ip?
+		{
+			if((msg->tcp->source != htons(port)) &&
+					(msg->tcp->dest != htons(port)))
+				continue;	// not to/from the controller
+		}
+		else 
+		{
+			if((!(msg->ip->saddr == ip && msg->tcp->source == htons(port))) &&
+					(! (msg->ip->daddr == ip && msg->tcp->dest == htons(port))))
+				continue;	// not to/from the controller
+		}
 		// OFP parsing
 		msg->ofph = (struct ofp_header * ) &msg->data[index];
-		msg->type.packet_in = (struct ofp_packet_in * ) &msg->data[index];	// use the packet_in entry, even though
+		// use the packet_in entry, even though
+		// it doesn't really matter
+		msg->type.packet_in = (struct ofp_packet_in * ) &msg->data[index];	
 		found=1;
-											// it doesn't really matter
+		index+=ntohs(msg->ofph->length);	// advance the index pointer
 	}
+	// assumes the index pointer is pointting just beyond the current openflow message
+	if(index< msg->captured)
+		msg->more_messages_in_packet=1;
+	else
+		msg->more_messages_in_packet=0;
 	return found;
 }
