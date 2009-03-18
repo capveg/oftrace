@@ -147,14 +147,14 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 	{
 		tries++;
 		err= fread(&phdr,sizeof(phdr),1, pcap);	// grab a header
-		if (err != 1)
+		if (err < 1)
 		{
 			fprintf(stderr,"short file reading header -- terminating\n");
 			perror("fread");
 			return 0;	// not found; stop
 		}
 		msg->captured = fread(msg->data,1,phdr.incl_len,pcap);
-		if (err < phdr.incl_len)
+		if (err < 1)
 		{
 			fprintf(stderr,"short file reading packet (%d bytes instead of %d) -- terminating\n",
 					err, phdr.incl_len); 
