@@ -1,0 +1,19 @@
+WHAT: Flowdump Analyzer
+---------------------------
+Take as input a libpcap formated file (i.e., from tcpdump/wireshark) and
+output useful statistics about the OpenFlow session (defaults to port 6633)
+
+
+
+HOW to build:
+------------------------------
+[if there is no ./configure script, i.e., building from git]
+sh boot
+
+./configure
+make
+make install
+
+
+
+- capveg 03/09
