@@ -54,8 +54,17 @@ int main(int argc, char * argv[])
 	FILE * pcap=NULL;
 	char * filename = "openflow.trace";
 	char * controller = "172.27.74.150";
+	int port = OFP_TCP_PORT;
 	uint32_t controller_ip;
 	// FIXME: parse options from cmdline
+	if(argc>1)
+		filename=argv[1];
+	if(argc>2)
+		controller=argv[2];
+	if(argc>3)
+		port=atoi(argv[3]);
+	fprintf(stderr,"Defaulting to reading from pcap file %s for controller %s on port %d\n",
+			filename,controller,port);
 	pcap = fopen(filename,"r");
 	inet_pton(AF_INET,controller,&controller_ip);	// FIXME: use getaddrinfo
 	if(!pcap)
@@ -66,7 +75,7 @@ int main(int argc, char * argv[])
 	}
 	if(read_pcap_header(pcap)!=1)
 		return 0;
-	return do_analyze(pcap,controller_ip, OFP_TCP_PORT);
+	return do_analyze(pcap,controller_ip, port);
 }
 /************************************************************************
  * do_analyze:
@@ -79,20 +88,35 @@ int do_analyze(FILE * pcap, uint32_t ip, int port)
 	openflow_msg m;
 	char dst_ip[BUFLEN];
 	char src_ip[BUFLEN];
+	struct timeval start,diff;
+	start.tv_sec = 0;	
 	// for each openflow msg
 	while( get_next_openflow_msg(pcap, ip, port, &m) != 0)
 	{
 		count ++;
+		if(start.tv_sec == 0)
+		{
+			start.tv_sec = m.phdr.ts_sec;
+			start.tv_usec = m.phdr.ts_usec;
+		}
+		diff.tv_sec = m.phdr.ts_sec - start.tv_sec;
+		if(m.phdr.ts_usec < start.tv_usec)
+		{
+			diff.tv_usec = m.phdr.ts_usec + 100000 + start.tv_usec;
+			diff.tv_sec--;
+		}
+		else
+			diff.tv_usec = m.phdr.ts_usec - start.tv_usec;
 		inet_ntop(AF_INET,&m.ip->saddr,src_ip,BUFLEN);
 		inet_ntop(AF_INET,&m.ip->daddr,dst_ip,BUFLEN);
-		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	TIME %u.%.6u\n",
+		printf("FROM %s:%u		TO  %s:%u	OFP_TYPE %d	TIME %lu.%.6lu\n",
 				src_ip,
 				ntohs(m.tcp->source),
 				dst_ip,
 				ntohs(m.tcp->dest),
 				m.ofph->type,
-				m.phdr.ts_sec,
-				m.phdr.ts_usec
+				diff.tv_sec,
+				diff.tv_usec
 				);
 	}
 	fprintf(stderr,"Total OpenFlow Messages: %d\n",count);
@@ -138,7 +162,6 @@ int read_pcap_header(FILE * pcap)
  */
 int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg * msg)
 {
-	struct pcaprec_hdr_s phdr;
 	int found=0;
 	int tries = 0;
 	int err;
@@ -146,18 +169,19 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 	while(found == 0)
 	{
 		tries++;
-		err= fread(&phdr,sizeof(phdr),1, pcap);	// grab a header
+		err= fread(&msg->phdr,sizeof(msg->phdr),1, pcap);	// grab a header
 		if (err < 1)
 		{
 			fprintf(stderr,"short file reading header -- terminating\n");
 			perror("fread");
 			return 0;	// not found; stop
 		}
-		msg->captured = fread(msg->data,1,phdr.incl_len,pcap);
-		if (err < 1)
+		msg->captured = msg->phdr.incl_len;
+		err = fread(msg->data,1,msg->phdr.incl_len,pcap);
+		if (err < msg->captured)
 		{
 			fprintf(stderr,"short file reading packet (%d bytes instead of %d) -- terminating\n",
-					err, phdr.incl_len); 
+					err, msg->phdr.incl_len); 
 			perror("fread");
 			return 0;	// not found; stop
 		}
@@ -199,6 +223,7 @@ int get_next_openflow_msg(FILE * pcap, uint32_t ip, int port,struct openflow_msg
 		// OFP parsing
 		msg->ofph = (struct ofp_header * ) &msg->data[index];
 		msg->type.packet_in = (struct ofp_packet_in * ) &msg->data[index];	// use the packet_in entry, even though
+		found=1;
 											// it doesn't really matter
 	}
 	return found;
