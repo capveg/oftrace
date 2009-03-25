@@ -1,4 +1,4 @@
-WHAT: Flowdump Analyzer
+WHAT: OpenFlow dump Analyzer/tracing
 ---------------------------
 Take as input a libpcap formated file (i.e., from tcpdump/wireshark) and
 output useful statistics about the OpenFlow session (defaults to port 6633)
@@ -8,12 +8,14 @@ output useful statistics about the OpenFlow session (defaults to port 6633)
 HOW to build:
 ------------------------------
 [if there is no ./configure script, i.e., building from git]
-sh boot
+./boot.sh
 
 ./configure
 make
 make install
 
+to clean up all of the created files, run (mostly for developers):
+./mr_proper.sh
 
-
+------------------------------
 - capveg 03/09
