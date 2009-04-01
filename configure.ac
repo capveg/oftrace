@@ -46,6 +46,17 @@ AC_PROG_AWK
 AC_PROG_CPP
 AC_PROG_RANLIB
 
+dnl check whether python extension is enabled and accordingly set swig
+#m4_pattern_allow(AC_PROG_SWIG)
+if test -n "$PYTHON"; then
+   AC_PROG_SWIG(1.3.0)
+   if test -z "$SWIG"; then
+	  AC_MSG_ERROR([swig 1.3.0 or later required - please install])
+   fi
+   SWIG_ENABLE_CXX
+   SWIG_PYTHON
+fi
+
 # Checks for libraries.
 
 # Checks for header files.

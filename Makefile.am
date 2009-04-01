@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS=-Wall -Werror foreign
 #SUBDIRS = policies
 
+ACLOCAL_AMFLAGS = -I m4
+
 OFSRC=@openflowsrc@
 
 rundir = $(localstatedir)/run
@@ -27,11 +29,12 @@ ofstats_SOURCES = ofstats.c
 ofstats_LDADD = liboftrace.a
 
 
-python: oftracemodule.so
-oftrace_wrap.o: oftrace_wrap.c oftrace.i
+python: _oftracemodule.so
+oftrace_wrap.c: oftrace.i
 	swig -python oftrace.i
-	$(CC) $(CFLAGS) -I/usr/inlude/python2.5 -c $<
-oftracemodule.so: liboftrace.a oftrace_wrap.o
+oftrace_wrap.o: oftrace_wrap.c oftrace.c
+	$(CC) $(CFLAGS) -I/usr/include/python2.5 -c $<
+_oftracemodule.so: liboftrace.a oftrace_wrap.o
 	ld -shared $(subst .c,.o,$(liboftrace_a_SOURCES)) oftrace_wrap.o -o $@
 
 count: 
