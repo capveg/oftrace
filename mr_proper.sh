@@ -7,3 +7,5 @@ rm -rf aclocal.m4 configure depcomp install-sh missing Makefile.in autom4te.cach
 rm -rf gmon.out
 # stupid emacs users
 rm -f *~
+# swit wrapper
+rm -f *_wrap.c

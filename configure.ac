@@ -53,6 +53,8 @@ if test -n "$PYTHON"; then
    if test -z "$SWIG"; then
 	  AC_MSG_ERROR([swig 1.3.0 or later required - please install])
    fi
+#   AC_PROG_LIBTOOL
+   AM_PATH_PYTHON(2.5)
    SWIG_ENABLE_CXX
    SWIG_PYTHON
 fi

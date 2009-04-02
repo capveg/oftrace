@@ -16,7 +16,7 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 
 
 bin_PROGRAMS=ofdump ofstats
-lib_LIBRARIES=liboftrace.a 
+lib_LIBRARIES=liboftrace.a
 
 liboftrace_a_SOURCES= oftrace.c 	\
 		utils.c \
@@ -29,13 +29,13 @@ ofstats_SOURCES = ofstats.c
 ofstats_LDADD = liboftrace.a
 
 
-python: _oftracemodule.so
-oftrace_wrap.c: oftrace.i
-	swig -python oftrace.i
-oftrace_wrap.o: oftrace_wrap.c oftrace.c
+python: _pyoftrace.so
+pyoftrace_wrap.c: oftrace.i
+	swig -python -o pyoftrace_wrap.c -module pyoftrace oftrace.i
+pyoftrace_wrap.o: pyoftrace_wrap.c 
 	$(CC) $(CFLAGS) -I/usr/include/python2.5 -c $<
-_oftracemodule.so: liboftrace.a oftrace_wrap.o
-	ld -shared $(subst .c,.o,$(liboftrace_a_SOURCES)) oftrace_wrap.o -o $@
+_pyoftrace.so: liboftrace.a pyoftrace_wrap.o
+	ld -shared $(subst .c,.o,$(liboftrace_a_SOURCES)) pyoftrace_wrap.o -o $@
 
 count: 
 	@wc -l $(ofstats_SOURCES) $(liboftrace_a_SOURCES) $(ofdump_SOURCES) | sort -n
