@@ -47,6 +47,7 @@ AC_PROG_CPP
 AC_PROG_LIBTOOL
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+AC_PYTHON_DEVEL
 
 dnl check whether python extension is enabled and accordingly set swig
 #m4_pattern_allow(AC_PROG_SWIG)
@@ -56,8 +57,9 @@ if test -n "$PYTHON"; then
 	  AC_MSG_ERROR([swig 1.3.0 or later required - please install])
    fi
    AM_PATH_PYTHON(2.5)
-   SWIG_ENABLE_CXX
    SWIG_PYTHON
+else
+	echo "NO PYTHON SUPPORT; NOT CONFIGURING SWIG!!!"
 fi
 
 # Checks for libraries.

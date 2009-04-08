@@ -38,8 +38,9 @@ ofstats_LDADD = liboftrace.a
 pkgpython_PYTHON = oftrace.py
 pkgpyexec_LTLIBRARIES = _oftrace.la
 _oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i
-_oftrace_la_LDFLAGS = -module -rpath $(libdir)
-_oftrace_la_CFLAGS = -I/usr/include/python2.5/
+_oftrace_la_LDFLAGS = -module
+_oftrace_la_CFLAGS = $(SWIG_PYTHON_CPPFLAGS)
+_oftrace_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS)
 _oftrace_la_LIBADD = liboftrace.a
 
 oftrace_wrap_python.c oftrace.py : oftrace.i
