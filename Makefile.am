@@ -43,9 +43,5 @@ _oftrace_la_LIBADD = liboftrace.la
 oftrace_wrap_python.c oftrace.py : oftrace.i
 	swig -python -module oftrace -o $@ $<	
 
-
-pyoftrace_wrap.c: oftrace.i
-	swig -python -o pyoftrace_wrap.c -module pyoftrace oftrace.i
-
 count: 
 	@wc -l $(ofstats_SOURCES) $(liboftrace_la_SOURCES) $(ofdump_SOURCES) | sort -n
