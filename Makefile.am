@@ -15,16 +15,16 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 
 bin_PROGRAMS=ofdump ofstats
 lib_LTLIBRARIES=liboftrace.la
-man_MANS = oftrace.3
+dist_man_MANS = oftrace.3
 
 # for now, don't put oftrace into it's own directory
 # FYI: http://www.openismus.com/documents/linux/building_libraries/building_libraries.shtml
 library_includedir=$(includedir)
 library_include_HEADERS=oftrace.h
 
-liboftrace_la_SOURCES= oftrace.c 	\
-		utils.c \
-		tcp_session.c
+liboftrace_la_SOURCES= oftrace.c oftrace.h	\
+		utils.c utils.h \
+		tcp_session.c  tcp_session.h
 
 ofdump_SOURCES = ofdump.c
 ofdump_LDADD = liboftrace.la
