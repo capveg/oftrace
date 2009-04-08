@@ -33,8 +33,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.61])
-AC_INIT([oftrace], [0.3], [rob.sherwood@stanford.edu])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AC_INIT([oftrace], [0.4], [rob.sherwood@stanford.edu])
+AM_INIT_AUTOMAKE([-Wall -Werror ])
 AC_CONFIG_SRCDIR([.])
 #AC_CONFIG_HEADERS([])
 

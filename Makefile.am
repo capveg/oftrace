@@ -1,15 +1,12 @@
-AUTOMAKE_OPTIONS=-Wall -Werror foreign
+AUTOMAKE_OPTIONS=-Wall -Werror 
 #SUBDIRS = policies
 
 ACLOCAL_AMFLAGS = -I m4
 
 OFSRC=@openflowsrc@
 
-AM_CFLAGS = -Wall -Werror -g -O0
-AM_LDFLAGS = -g -O0
-
-CFLAGS+=-I$(OFSRC)/include -I$(OFSRC)/lib
-LDFLAGS+=-L$(OFSRC)/lib -lm
+AM_CFLAGS = -Wall -Werror -g -O0 -I$(OFSRC)/include -I$(OFSRC)/lib
+AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm
 
 LDADD=$(OFSRC)/lib/libopenflow.a
 
