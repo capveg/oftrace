@@ -5,7 +5,6 @@ ACLOCAL_AMFLAGS = -I m4
 
 OFSRC=@openflowsrc@
 
-rundir = $(localstatedir)/run
 AM_CFLAGS = -Wall -Werror -g -O0
 AM_LDFLAGS = -g -O0
 
@@ -17,6 +16,10 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 
 bin_PROGRAMS=ofdump ofstats
 lib_LIBRARIES=liboftrace.a
+
+# for now, don't put oftrace into it's own directory
+library_includedir=$(includedir)
+library_include_HEADERS=oftrace.h
 
 liboftrace_a_SOURCES= oftrace.c 	\
 		utils.c \
