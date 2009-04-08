@@ -3,9 +3,12 @@ set -x
 if [ -f Makefile ] ; then
 	make maintainer-clean
 fi
-rm -rf aclocal.m4 configure depcomp install-sh missing Makefile.in autom4te.cache config.status Makefile config.log
-rm -rf gmon.out m4
+
+rm -rf aclocal.m4 configure depcomp install-sh missing Makefile.in autom4te.cache config.status Makefile config.log py-compile
+rm -rf gmon.out
+
 # stupid emacs users
 rm -f *~
 # swit wrapper
-rm -f *_wrap.c
+rm -f *_wrap_python.c
+rm -f oftrace.p*

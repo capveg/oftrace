@@ -14,4 +14,3 @@
 %include "oftrace.h"
 // Parse the header file
 %include "common-defs.i"
-
