@@ -99,7 +99,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	{
 		if((seqno +full_len) < curr->start_seq)	// have we gone too far?
 			break;
-		else if(seqno > (curr->start_seq + curr->len) )	// not far enough; next
+		else if(seqno >= (curr->start_seq + curr->len) )	// not far enough; next
 		{
 			prev=curr;
 			curr=curr->next;
