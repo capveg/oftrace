@@ -168,9 +168,10 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		// TCP parsing
 		msg->tcp = (struct tcphdr * ) &msg->data[index];
 		index += msg->tcp->doff*4;
+		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
 		if(msg->captured <= index)
 			continue;	// tcp packet has no payload (e.g., an ACK)
-		if(ip_packet_len <= (index - sizeof(struct ether_header)))
+		if(payload_len <=0)
 			continue;	// skip if the only thing left is an ethernet trailer
 		// Is this to or from the controller?
 		if ( ip == 0 ) // do we care about the controller's ip?
@@ -199,7 +200,6 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session*)*oft->max_sessions);
 			}
 		}
-		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
 		// add this data to the sessions' tcp stream
 		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),
 				&msg->data[index],	
