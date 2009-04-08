@@ -11,6 +11,9 @@ HOW to build:
 ./boot.sh
 
 ./configure
+	OR 
+./configure --with-openflow-src-dir=/path/to/openflow/src
+
 make
 make install
 
