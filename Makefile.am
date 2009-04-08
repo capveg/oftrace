@@ -16,6 +16,7 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 
 bin_PROGRAMS=ofdump ofstats
 lib_LIBRARIES=liboftrace.a
+man_MANS = oftrace.3
 
 # for now, don't put oftrace into it's own directory
 # FYI: http://www.openismus.com/documents/linux/building_libraries/building_libraries.shtml

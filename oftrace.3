@@ -1,0 +1,108 @@
+.\" COPYRIGHT
+.TH OFTRACE 3 "April 1 2009"
+.SH NAME
+oftrace \- OpenFlow Message Tracing Library
+.SH SYNOPSIS
+.nf
+.ft B
+#include <oftrace.h>
+.ft
+.LP
+.nf
+.ft B
+oftrace * oftrace_open(char * pcapfile);
+const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port);
+int oftrace_rewind(oftrace * oft);
+.ft
+.LP
+.SH DESCRIPTION
+The OpenFlow message tracing library provides a high level interface
+to following OpenFlow message streams for the purpose of debugging,
+performance testing, etc.  oftrace operates on network packet-level dumps
+such as those produced by tcpdump or wireshark.  oftrace performs message
+framing and undoes segment duplication and reordering to simplify the
+calling program.
+.PP
+.SH ROUTINES
+.\" 
+.PP
+.B oftrace_open()
+returns an oftrace structure which is an opaque pointer to the libraries internal structure.
+.I pcapfile
+the string with path and filename to the pcap formatted trace file.
+.\" 
+.PP
+.B oftrace_next_msg()
+returns the next sequential openflow message from the trace.  OpenFlow messages are stored as a openflow_msg structure (described below). 
+.I ip 
+specifies a filter on the source or destination IP address of messages to consider: set to IPADDR_ANY (i.e., zero) to match all IPs.
+.I port 
+specifies a filter on the source or destination TCP port: set to zero to match all ports.
+.\" 
+.PP
+.B oftrace_rewind()
+Re-starts message parsing from the beginning of the file.
+
+.SH DATA STRUCTURES
+.PP
+.B
+typedef struct openflow_msg
+{
+
+	char data[BUFLEN]; 	// where the message data is stored
+
+	int captured;		// bytes captured
+
+	struct pcaprec_hdr_s phdr;      // when the packet was received; for fragments, this actually the packet that
+
+	uint16_t type;		 // OpenFlow Message type: OFPT_something
+
+	// convenience pointers
+
+	struct ether_header * ether;
+
+	struct iphdr * ip;
+
+	struct tcphdr * tcp;
+
+	struct ofp_header * ofph;
+
+	union openflow_msg_ptr ptr;
+
+} 
+.B openflow_msg;
+
+
+.B typedef union openflow_msg_ptr 
+{
+
+	struct ofp_packet_in * packet_in;
+
+	struct ofp_packet_out * packet_out;
+
+	struct ofp_flow_mod * flow_mod;
+
+} 
+.B openflow_msg_ptr;
+
+
+
+
+.SH AUTHORS
+The original authors are:
+.LP
+Rob Sherwood		rob.sherwood@stanford.edu
+
+Yiannis Yiakoumis	yiannisy@stanford.edu
+
+
+.LP
+The current version is available from the openflow website at:
+.LP
+.RS
+.I http://www.openflowswitch.org/
+.RE
+.SH BUGS
+
+There are a number of known packet re-ordering bugs - this work is considered
+.B ALPHA
