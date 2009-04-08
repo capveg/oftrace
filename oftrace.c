@@ -96,6 +96,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	struct ofp_header * ofph;
 	char tmp[BUFLEN];
 	int tmplen = 0;
+	int ip_packet_len=0;
+	int payload_len=0;
 
 	if(oft->curr)	// from previous call, are there multiple mesgs in this one tcp session?
 	{
@@ -109,6 +111,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 				tcp_session_pull(oft->curr,tmplen);
 				index = sizeof(struct ether_header) + (msg->ip->ihl + msg->tcp->doff) * 4;
 				found = 1;
+				msg->captured = -1; 	// indicate that the true captured amount was lost in reconstruction
 			}
 		}
 	}
@@ -155,6 +158,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		}
 		if(msg->ip->protocol != IPPROTO_TCP)
 			continue; 	// not a tcp packet
+		ip_packet_len = ntohs(msg->ip->tot_len);
 		index += 4 * msg->ip->ihl;
 		if( msg->captured < index)
 		{
@@ -166,6 +170,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		index += msg->tcp->doff*4;
 		if(msg->captured <= index)
 			continue;	// tcp packet has no payload (e.g., an ACK)
+		if(ip_packet_len <= (index - sizeof(struct ether_header)))
+			continue;	// skip if the only thing left is an ethernet trailer
 		// Is this to or from the controller?
 		if ( ip == 0 ) // do we care about the controller's ip?
 		{
@@ -193,8 +199,12 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session*)*oft->max_sessions);
 			}
 		}
+		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
 		// add this data to the sessions' tcp stream
-		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),&msg->data[index],msg->captured-index,msg->phdr.orig_len-index);
+		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),
+				&msg->data[index],	
+				MIN(payload_len,msg->captured-index),
+				payload_len);
 		tmplen = sizeof(struct ofp_header);
 		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// check to see if there is another ofp header queued in the session
 			continue;
