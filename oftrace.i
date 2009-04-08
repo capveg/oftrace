@@ -9,8 +9,9 @@
 %apply unsigned int { uint32_t }
 %apply unsigned short { uint16_t }
 
+//oftrace_next_msg
 
-// Parse the header file
 %include "oftrace.h"
-
+// Parse the header file
+%include "common-defs.i"
 
