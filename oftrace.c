@@ -169,15 +169,17 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		// Is this to or from the controller?
 		if ( ip == 0 ) // do we care about the controller's ip?
 		{
-			if((msg->tcp->source != htons(port)) &&
-					(msg->tcp->dest != htons(port)))
+			if(port!= 0 && msg->tcp->source != htons(port) &&
+					msg->tcp->dest != htons(port))
 				continue;	// not to/from the controller
 		}
 		else 
 		{
-			if((!(msg->ip->saddr == ip && msg->tcp->source == htons(port))) &&
+			if((port == 0) && (msg->ip->saddr != ip) && (msg->ip->daddr != ip))
+				continue;	// not to/from the controller; port = wildcard
+			else if((!(msg->ip->saddr == ip && msg->tcp->source == htons(port))) &&
 					(! (msg->ip->daddr == ip && msg->tcp->dest == htons(port))))
-				continue;	// not to/from the controller
+				continue;	// not to/from the controller; port = specified
 		}
 		oft->curr = tcp_session_find(oft->sessions,oft->n_sessions,msg->ip, msg->tcp);
 		if(oft->curr == NULL)
