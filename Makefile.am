@@ -18,6 +18,7 @@ bin_PROGRAMS=ofdump ofstats
 lib_LIBRARIES=liboftrace.a
 
 # for now, don't put oftrace into it's own directory
+# FYI: http://www.openismus.com/documents/linux/building_libraries/building_libraries.shtml
 library_includedir=$(includedir)
 library_include_HEADERS=oftrace.h
 
