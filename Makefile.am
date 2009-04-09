@@ -41,7 +41,8 @@ _oftrace_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
 _oftrace_la_LIBADD = liboftrace.la
 
 oftrace_wrap_python.c oftrace.py : oftrace.i
-	swig -python -module oftrace -o $@ $<	
+	$(SWIG) $(SWIG_PYTHON_OPT) $(AM_FLAGS) -o $<
+#swig -python -module oftrace -o $@ $<	
 
 count: 
 	@wc -l $(ofstats_SOURCES) $(liboftrace_la_SOURCES) $(ofdump_SOURCES) | sort -n
