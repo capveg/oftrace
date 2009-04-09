@@ -41,7 +41,7 @@ without specific, written prior permission.
  * malloc and create a new tcp_session
  */
 
-tcp_session * tcp_session_new(struct iphdr * ip, struct tcphdr * tcp)
+tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 {
 	tcp_session * ts = malloc_and_check(sizeof(tcp_session));
 	ts->sip=ip->saddr;
@@ -58,7 +58,7 @@ tcp_session * tcp_session_new(struct iphdr * ip, struct tcphdr * tcp)
  * 	find the session matching the passes parameters
  * 	return NULL if not found
  */
-tcp_session * tcp_session_find(tcp_session ** sessions, int n_sessions,struct iphdr * ip, struct tcphdr * tcp)
+tcp_session * tcp_session_find(tcp_session ** sessions, int n_sessions,struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 {
 	int i;
 	tcp_session *ts;

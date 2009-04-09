@@ -1,0 +1,4 @@
+Version 0.4:
+	- fixed bug wrt ethernet trailers
+	- fixed bug in off-by-one fragment parsing
+		that was causing an infinite loop

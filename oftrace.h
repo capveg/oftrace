@@ -40,6 +40,8 @@ without specific, written prior permission.
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 
+#include <features.h>
+
 #include <pcap.h>
 //#include <pcap-bpf.h>
 
@@ -73,6 +75,68 @@ typedef union openflow_msg_ptr {
 	struct ofp_flow_mod * flow_mod;
 } openflow_msg_ptr;
 
+
+// Manually include them here for portability and swig-happiness
+
+struct oft_iphdr
+{
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	unsigned int ihl:4;
+	unsigned int version:4;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+	unsigned int version:4;
+	unsigned int ihl:4;
+#else
+# error "Please fix <bits/endian.h>"
+#endif
+	uint8_t tos;
+	uint16_t tot_len;
+	uint16_t id;
+	uint16_t frag_off;
+	uint8_t ttl;
+	uint8_t protocol;
+	uint16_t check;
+	uint32_t saddr;
+	uint32_t daddr;
+	/*The options start here. */
+};
+
+struct oft_tcphdr
+{
+	uint16_t source;
+	uint16_t dest;
+	uint32_t seq;
+	uint32_t ack_seq;
+#  if __BYTE_ORDER == __LITTLE_ENDIAN
+	uint16_t res1:4;
+	uint16_t doff:4;
+	uint16_t fin:1;
+	uint16_t syn:1;
+	uint16_t rst:1;
+	uint16_t psh:1;
+	uint16_t ack:1;
+	uint16_t urg:1;
+	uint16_t res2:2;
+#  elif __BYTE_ORDER == __BIG_ENDIAN
+	uint16_t doff:4;
+	uint16_t res1:4;
+	uint16_t res2:2;
+	uint16_t urg:1;
+	uint16_t ack:1;
+	uint16_t psh:1;
+	uint16_t rst:1;
+	uint16_t syn:1;
+	uint16_t fin:1;
+#  else
+#   error "Adjust your <bits/endian.h> defines"
+#  endif
+	uint16_t window;
+	uint16_t check;
+	uint16_t urg_ptr;
+};
+
+
+
 /*********************************************************
  * Actual openflow message structure
  * 	- all data is stored in data
@@ -91,8 +155,8 @@ typedef struct openflow_msg
 	uint16_t type;		
 	// convenience pointers
 	struct ether_header * ether;
-	struct iphdr * ip;
-	struct tcphdr * tcp;
+	struct oft_iphdr * ip;
+	struct oft_tcphdr * tcp;
 	struct ofp_header * ofph;
 	union openflow_msg_ptr ptr;
 } openflow_msg;

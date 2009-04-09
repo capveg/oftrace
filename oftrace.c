@@ -182,7 +182,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			continue;
 		}
 		// IP parsing
-		msg->ip = (struct iphdr * ) &msg->data[index];
+		msg->ip = (struct oft_iphdr * ) &msg->data[index];
 		if(msg->ip->version != 4)
 		{
 			fprintf(stderr, "captured non-ipv4 ip packet (%d) -- skipping (but weird)\n",msg->ip->version);
@@ -198,7 +198,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			continue;
 		}
 		// TCP parsing
-		msg->tcp = (struct tcphdr * ) &msg->data[index];
+		msg->tcp = (struct oft_tcphdr * ) &msg->data[index];
 		index += msg->tcp->doff*4;
 		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
 		if(msg->captured <= index)
