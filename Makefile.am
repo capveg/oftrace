@@ -11,7 +11,7 @@ AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm
 LDADD=$(OFSRC)/lib/libopenflow.a
 
 #EXTRA_DIST = __init__.py oftrace.py
-
+bin_SCRIPTS=pyofdump.py
 bin_PROGRAMS=ofdump ofstats
 lib_LTLIBRARIES=liboftrace.la
 dist_man_MANS = oftrace.3
