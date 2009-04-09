@@ -138,7 +138,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		{
 			ofph = (struct ofp_header * ) tmp;
 			tmplen = ntohs(ofph->length);
-			if(tcp_session_peek(oft->curr,tmp,tmplen))
+			if(tcp_session_peek(oft->curr,tmp,tmplen)==1)
 			{
 				tcp_session_pull(oft->curr,tmplen);
 				index = sizeof(struct ether_header) + (msg->ip->ihl + msg->tcp->doff) * 4;

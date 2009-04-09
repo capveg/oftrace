@@ -82,25 +82,25 @@ tcp_session * tcp_session_find(tcp_session ** sessions, int n_sessions,struct ip
  */
 int tcp_session_peek(tcp_session * ts, char * data, int len)
 {
-	tcp_frag *tf;
+	tcp_frag *curr;
 	int index=0;
 	uint32_t seqno;
 	int min;
 	assert(ts);
 
-	tf = ts->next;
+	curr = ts->next;
 	seqno = ts->seqno;
-	while(tf)
+	while(curr)
 	{
-		if(seqno != tf->start_seq)	// is the new fragment contiguous with the last?
+		if(seqno != curr->start_seq)	// is the new fragment contiguous with the last?
 			return 0;
-		min = MIN(tf->len,len-index);
-		memcpy(&data[index],tf->data,min);
+		min = MIN(curr->len,len-index);
+		memcpy(&data[index],curr->data,min);
 		seqno +=min;		// this will autowrap, no worries about PAWS
 		index+=min;
 		if(index>=len)		// did we find all that we were looking for?
 			return 1;
-		tf=tf->next;
+		curr=curr->next;
 	}
 	return 0;	// ran out of fragments before finding len bytes
 }
@@ -229,7 +229,7 @@ int tcp_session_pull(tcp_session * ts, int len)
 		{
 			len -= curr->len;
 			ts->next = curr->next;
-			ts->seqno = curr->start_seq;
+			ts->seqno = curr->start_seq+curr->len;
 			free(curr);
 		}
 		else
