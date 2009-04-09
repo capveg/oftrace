@@ -11,6 +11,7 @@
 
 //oftrace_next_msg
 
+%include "@openflowsrc@/include/openflow/openflow.h"
 %include "oftrace.h"
 // Parse the header file
 %include "common-defs.i"

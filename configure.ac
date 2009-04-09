@@ -105,6 +105,6 @@ AC_HEADER_STDBOOL
 AC_CHECK_FUNCS([strerror])
 
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile oftrace.i])
 
 AC_OUTPUT
