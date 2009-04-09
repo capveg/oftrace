@@ -11,7 +11,6 @@ AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm
 LDADD=$(OFSRC)/lib/libopenflow.a
 
 #EXTRA_DIST = __init__.py oftrace.py
-#bin_SCRIPTS = oftrace.py
 
 bin_PROGRAMS=ofdump ofstats
 lib_LTLIBRARIES=liboftrace.la
@@ -32,15 +31,15 @@ ofdump_LDADD = liboftrace.la
 ofstats_SOURCES = ofstats.c
 ofstats_LDADD = liboftrace.la
 
-pkgpython_PYTHON = oftrace.py __init__.py
+pkgpython_PYTHON = __init__.py
 pkgpyexec_LTLIBRARIES = _oftrace.la
-_oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i
+_oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i common-defs.i
 _oftrace_la_LDFLAGS = -module $(AM_LDFLAGS)
 _oftrace_la_CFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
 _oftrace_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
 _oftrace_la_LIBADD = liboftrace.la
 
-oftrace_wrap_python.c oftrace.py : oftrace.i
+oftrace_wrap_python.c: oftrace.i
 	swig -python -module oftrace -o $@ $<	
 #	$(SWIG) $(SWIG_PYTHON_OPT) $(AM_FLAGS) -o $<
 

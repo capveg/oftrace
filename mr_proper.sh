@@ -33,6 +33,7 @@
 
 set -x
 if [ -f Makefile ] ; then
+	make clean
 	make maintainer-clean
 fi
 
