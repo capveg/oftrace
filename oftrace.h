@@ -136,6 +136,15 @@ struct oft_tcphdr
 };
 
 
+/* 10Mb/s ethernet header */
+struct oft_ethhdr
+{
+  uint8_t  ether_dhost[ETH_ALEN];	/* destination eth addr	*/
+  uint8_t  ether_shost[ETH_ALEN];	/* source ether addr	*/
+  uint16_t ether_type;		        /* packet type ID field	*/
+};
+
+
 
 /*********************************************************
  * Actual openflow message structure
