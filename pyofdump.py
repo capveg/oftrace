@@ -42,7 +42,9 @@ from oftrace import oftrace
 
 def main():
     usage = "usage: %prog [options] arg"
+    description = "A simple program that dumps the packets of an openflow trace"
     parser = OptionParser(usage)
+    parser.description = description
     parser.add_option("-f","--file",dest="filename",
                       default="hyper.trace",
                       help="read trace from file")
