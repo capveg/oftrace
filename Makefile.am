@@ -33,7 +33,7 @@ ofstats_SOURCES = ofstats.c
 ofstats_LDADD = liboftrace.la
 
 pkgpython_PYTHON = __init__.py
-nodist_pkgpythonPYTHON=oftrace.py
+nodist_pkgpython_PYTHON=oftrace.py
 pkgpyexec_LTLIBRARIES = _oftrace.la
 _oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i common-defs.i
 _oftrace_la_LDFLAGS = -module $(AM_LDFLAGS)
