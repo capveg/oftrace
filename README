@@ -2,6 +2,8 @@ WHAT: OpenFlow dump Analyzer/tracing
 ---------------------------
 Take as input a libpcap formated file (i.e., from tcpdump/wireshark) and
 output useful statistics about the OpenFlow session (defaults to port 6633)
+liboftrace is available as a C library (liboftrace.{a,so}) and by higher
+level programing languages, e.g., python, via swig.
 
 
 
@@ -19,6 +21,19 @@ make install
 
 to clean up all of the created files, run (mostly for developers):
 ./mr_proper.sh
+
+
+TOOLS:
+-----------------------------------
+Included are two sample/example tools, written in both C and python:
+
+ofdump: (python version: pyofdump.py)
+	lists the messages and timestamps from a libpcap file
+
+ofstats: (python version: pyofstats.py)
+	prints the controller processing delay, i.e., the
+	time between packet_in and corresponding packet_out or
+	flow_mod 
 
 ------------------------------
 - capveg 03/09
