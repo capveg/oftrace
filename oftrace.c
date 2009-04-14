@@ -172,7 +172,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		}
 		index = 0;
 		// ethernet parsing
-		msg->ether = (struct ether_header *) &msg->data[index];
+		msg->ether = (struct oft_ethhdr *) &msg->data[index];
 		if(msg->ether->ether_type != htons(ETHERTYPE_IP))
 			continue;		// ether frame doesn't contain IP
 		index+=sizeof(struct ether_header);
@@ -261,10 +261,10 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	switch(msg->type)
 	{
 		case OFPT_PACKET_IN:
-			msg->embedded_packet = (struct ether_header * ) msg->ptr.packet_in->data;
+			msg->embedded_packet = (struct oft_ethhdr * ) msg->ptr.packet_in->data;
 			break;
 		case OFPT_PACKET_OUT:
-			msg->embedded_packet = (struct ether_header * ) &msg->data[index + sizeof(struct ofp_packet_out) + 
+			msg->embedded_packet = (struct oft_ethhdr * ) &msg->data[index + sizeof(struct ofp_packet_out) + 
 				ntohs(msg->ptr.packet_out->actions_len)];
 			break;
 		default:

@@ -163,12 +163,12 @@ typedef struct openflow_msg
 	// OFPT_something
 	uint16_t type;		
 	// convenience pointers
-	struct ether_header * ether;
+	struct oft_ethhdr * ether;
 	struct oft_iphdr * ip;
 	struct oft_tcphdr * tcp;
 	struct ofp_header * ofph;
 	union openflow_msg_ptr ptr;
-	struct ether_header * embedded_packet;
+	struct oft_ethhdr * embedded_packet;
 } openflow_msg;
 
 struct oftrace;
