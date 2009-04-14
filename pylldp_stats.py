@@ -79,8 +79,10 @@ def calc_stats(filename,controller,port):
 	m = oftrace.oftrace_next_msg(oft,ip,port)
 
 	while(m != None):
+		#print "--------- %f done ---- " % (oftrace.oftrace_progress(oft))
 		if m.type == oftrace.OFPT_PACKET_OUT:
 			if m.ptr.packet_out.buffer_id != 4294967295L:	# skip if this packet_out 
+				m = oftrace.oftrace_next_msg(oft,ip,port)
 				continue				# is releasing a packet in a buffer
 			eth = m.embedded_packet
 			etype = ntohs(eth.ether_type)
