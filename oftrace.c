@@ -107,6 +107,7 @@ oftrace * oftrace_open(char * filename)
 	oft->max_sessions = 10;			// will dynamically re-allocate - don't worry
 	oft->sessions = malloc_and_check(oft->max_sessions * sizeof(tcp_session));
 	oft->file=pcap;
+	oft->filename=strdup(filename);
 	return oft;
 }
 /**************************************************************************
