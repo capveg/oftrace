@@ -257,6 +257,19 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	// it doesn't really matter; it works for all openflow msg types b/c it's a union
 	msg->ptr.packet_in = (struct ofp_packet_in * ) &msg->data[index];	
 	msg->type = msg->ofph->type;	// redundant, but useful
+	// find any embedded packets
+	switch(msg->type)
+	{
+		case OFPT_PACKET_IN:
+			msg->embedded_packet = msg->ptr.packet_in->data;
+			break;
+		case OFPT_PACKET_OUT:
+			msg->embedded_packet = &msg->data[index + sizeof(struct ofp_packet_out) + 
+				ntohs(msg->ptr.packet_out->actions_len)];
+			break;
+		default:
+			msg->embedded_packet=NULL;
+	};
 	// done parsing; found a msg to return!
 	return msg;
 }

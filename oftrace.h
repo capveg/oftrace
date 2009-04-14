@@ -155,7 +155,7 @@ struct oft_ethhdr
 typedef struct openflow_msg
 {
 	// where the data is stored
-	char data[BUFLEN];
+	uint8_t data[BUFLEN];
 	int captured;
 	struct pcaprec_hdr_s phdr;	// when the packet was received; for fragments, this actually the packet that 
 					// 	filled in the whole that cause this message to be pushed to the application
@@ -168,6 +168,7 @@ typedef struct openflow_msg
 	struct oft_tcphdr * tcp;
 	struct ofp_header * ofph;
 	union openflow_msg_ptr ptr;
+	uint8_t * embedded_packet;
 } openflow_msg;
 
 struct oftrace;
