@@ -261,10 +261,10 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 	switch(msg->type)
 	{
 		case OFPT_PACKET_IN:
-			msg->embedded_packet = msg->ptr.packet_in->data;
+			msg->embedded_packet = (struct ether_header * ) msg->ptr.packet_in->data;
 			break;
 		case OFPT_PACKET_OUT:
-			msg->embedded_packet = &msg->data[index + sizeof(struct ofp_packet_out) + 
+			msg->embedded_packet = (struct ether_header * ) &msg->data[index + sizeof(struct ofp_packet_out) + 
 				ntohs(msg->ptr.packet_out->actions_len)];
 			break;
 		default:

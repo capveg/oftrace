@@ -70,7 +70,7 @@ int tcp_session_peek(tcp_session * ts, char * data, int len);
 /****************************
  * 	add this fragment to this session
  */
-int tcp_session_add_frag(tcp_session * ts, uint32_t seqno, uint8_t * data, int cap_len, int full_len);
+int tcp_session_add_frag(tcp_session * ts, uint32_t seqno, char * data, int cap_len, int full_len);
 
 /****************************
  * 	remove/dequeue len bytes from this session

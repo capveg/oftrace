@@ -108,7 +108,7 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 /****************************
  * 	add this fragment to this session
  */
-int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , uint8_t * tmpdata, int cap_len, int full_len)
+int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int cap_len, int full_len)
 {
 	char srcaddr[BUFLEN];
 	char dstaddr[BUFLEN];
