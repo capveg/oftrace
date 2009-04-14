@@ -111,6 +111,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 	// for each openflow msg
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
+		fprintf(stderr,"------------ %f done\n", oftrace_progress(oft));
 		switch(m->type)
 		{
 			case OFPT_PACKET_IN:
