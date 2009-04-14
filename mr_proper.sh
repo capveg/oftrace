@@ -39,6 +39,7 @@ fi
 
 rm -rf aclocal.m4 configure depcomp install-sh missing Makefile.in autom4te.cache config.status Makefile config.log py-compile
 rm -rf gmon.out
+rm -f oftrace-*.tar.gz
 
 # stupid emacs users
 rm -f *~
