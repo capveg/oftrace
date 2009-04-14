@@ -20,3 +20,5 @@
 //extern oft_iphdr
 
 %pointer_cast(uint8_t *,struct oft_ethhdr *,uint_to_oft_ethhdr);
+// allows the use of 'cdata' in calling scripts
+%include "cdata.i"
