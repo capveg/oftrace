@@ -32,6 +32,9 @@ without specific, written prior permission.
 
 #include <assert.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 
 #include "oftrace.h"
 #include "tcp_session.h"
@@ -287,5 +290,21 @@ int oftrace_rewind(oftrace * oft)
 	oft->curr=NULL;
 	oft->n_sessions=0;
 	return 0;
+}
+
+
+/************************************************
+ * double oftrace_progress(oftrace *oft);
+ * 	return the fraction of the file processed
+ */
+
+double oftrace_progress(oftrace *oft)
+{
+	struct stat sbuf;
+	long fpos = ftell(oft->file);
+	assert(oft);
+	if(stat(oft->filename,&sbuf))
+		return -2.0;	// stat failed for some reason.. which is pretty weird
+	return (double)fpos/ (double) sbuf.st_size;
 }
 

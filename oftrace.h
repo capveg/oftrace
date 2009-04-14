@@ -191,4 +191,7 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port);
 // restart tracing from the beginning of the pcap file (implicit on open) 
 int oftrace_rewind(oftrace * oft);
 
+// return the fraction of the file processed from 0 to 1
+double oftrace_progress(oftrace *oft);
+
 #endif
