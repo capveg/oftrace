@@ -45,10 +45,11 @@ import copy
 import pdb
 
 Infinity=-10.0
+MinProgress=0.001
 
 def main():
     usage = "usage: %prog [options] arg"
-    description = "A spimple program that prints the response time for every packet-in and its respective response (packet-out/flow-mod)"
+    description = "A spimple program that prints the response time for lldp probes"
     parser = OptionParser(usage)
     parser.description = description
     parser.add_option("-f","--file",dest="filename",
@@ -63,8 +64,8 @@ def main():
 
     (options,args) = parser.parse_args()
 
-    print ("Reading %s from controller %s , port %d") % \
-          (options.filename,options.controller,options.port)
+    sys.stderr.write ("Reading %s from controller %s , port %d\n" % \
+          (options.filename,options.controller,options.port))
 
     calc_stats(options.filename,options.controller,options.port)
 
@@ -77,9 +78,12 @@ def calc_stats(filename,controller,port):
 
 	oft = oftrace.oftrace_open(filename)
 	m = oftrace.oftrace_next_msg(oft,ip,port)
-
+	last_progress=-1.0
 	while(m != None):
-		#print "--------- %f done ---- " % (oftrace.oftrace_progress(oft))
+		progress = oftrace.oftrace_progress(oft)
+		if ( progress > ( last_progress + MinProgress)) :
+			sys.stderr.write( "--------- %f done ----\n" % (progress))
+			last_progress=progress
 		if m.type == oftrace.OFPT_PACKET_OUT:
 			if m.ptr.packet_out.buffer_id != 4294967295L:	# skip if this packet_out 
 				m = oftrace.oftrace_next_msg(oft,ip,port)
@@ -115,9 +119,11 @@ def calc_stats(filename,controller,port):
 					src_ip = inet_ntop(AF_INET,struct.pack("I",m.ip.saddr))
 					dst_ip = inet_ntop(AF_INET,struct.pack("I",m.ip.daddr))
 					diff_time = timesub(m,pending[srcdst])
-					print ("%ld.%.6ld secs_to_resp %s from %s:%u -> %s:%u (%d packets queued)") % \
+					print ("%ld.%.6ld secs_to_resp %ld.%.6ld %s from %s:%u -> %s:%u (%d packets queued)") % \
 						(diff_time["sec"],
 						 diff_time["usec"],
+						 pending[srcdst]['sec'],
+						 pending[srcdst]['usec'],
 						 srcdst,
 						 src_ip,
 						 ntohs(m.tcp.source),

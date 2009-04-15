@@ -58,8 +58,8 @@ def main():
 
     (options,args) = parser.parse_args()
 
-    print ("Reading %s from controller %s , port %d") % \
-          (options.filename,options.controller,options.port)
+    sys.stderr.write("Reading %s from controller %s , port %d \n" % \
+          (options.filename,options.controller,options.port) )
 
     calc_stats(options.filename,options.controller,options.port)
 
@@ -106,9 +106,11 @@ def calc_stats(filename,controller,port):
 
                 diff_time = timesub(m,pending[buf_id])
 
-                print ("%ld.%.6ld secs_to_resp buf_id:%x from %s:%u -> %s:%u (%d packets queued)") % \
+                print ("%ld.%.6ld secs_to_resp %ld.%.6ld buf_id:%x from %s:%u -> %s:%u (%d packets queued)") % \
                       (diff_time["sec"],
                        diff_time["usec"],
+		       pending[buf_id]['sec'],
+                       pending[buf_id]['usec'],
                        buf_id,
                        src_ip,
                        ntohs(m.tcp.source),
@@ -118,7 +120,7 @@ def calc_stats(filename,controller,port):
                 # ok, now we can remove initial request (packet-in) from queue
                 del pending[buf_id]
             elif(buf_id != 0xffffffff):
-                print ("weird, bufid %x not found") % (buf_id)
+                sys.stderr.write("weird, bufid %x not found \n" % (buf_id) )
 
         m = oftrace.oftrace_next_msg(oft,ip,port)
 
