@@ -10,7 +10,7 @@ AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm
 
 LDADD=$(OFSRC)/lib/libopenflow.a
 
-bin_SCRIPTS=pyofdump.py pyofstats.py pylldp_stats.py
+bin_SCRIPTS=pyofdump.py pyofstats.py lldp_stats.py
 # should be redundant... but isn't for some reason :-(
 EXTRA_DIST = $(bin_SCRIPTS)
 bin_PROGRAMS=ofdump ofstats
