@@ -5,8 +5,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 OFSRC=@openflowsrc@
 
-AM_CFLAGS = -Wall -Werror -g -O0 -I$(OFSRC)/include -I$(OFSRC)/lib
-AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm
+AM_CFLAGS = -Wall -Werror -g -O0 -I$(OFSRC)/include -I$(OFSRC)/lib  @LARGEFILES_CFLAGS@
+AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm  @LARGEFILES_LDFLAGS@
 
 LDADD=$(OFSRC)/lib/libopenflow.a
 

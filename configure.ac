@@ -81,6 +81,9 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_PYTHON_DEVEL
 
+#custom
+LARGE_FILES
+
 dnl check whether python extension is enabled and accordingly set swig
 #m4_pattern_allow(AC_PROG_SWIG)
 if test -n "$PYTHON"; then
