@@ -13,6 +13,7 @@ oftrace \- OpenFlow Message Tracing Library
 oftrace * oftrace_open(char * pcapfile);
 const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port);
 int oftrace_rewind(oftrace * oft);
+double oftrace_progress(oftrace *oft);
 .ft
 .LP
 .SH DESCRIPTION
@@ -43,6 +44,9 @@ specifies a filter on the source or destination TCP port: set to zero to match a
 .B oftrace_rewind()
 Re-starts message parsing from the beginning of the file.
 
+.PP
+.B oftrace_progress()
+Returns the fraction of the pcap file parsed (between zero and one)
 .SH DATA STRUCTURES
 .PP
 .B

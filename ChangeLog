@@ -1,5 +1,6 @@
 	- added support for parsing files >2GB
 	- added lldp_stats.py tool
+	- added oftrace_progress() call for personal sanity
 Version 0.4:
 	- fixed bug wrt ethernet trailers
 	- fixed bug in off-by-one fragment parsing
