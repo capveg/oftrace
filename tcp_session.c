@@ -251,3 +251,22 @@ int tcp_session_pull(tcp_session * ts, int len)
 }
 
 
+/*************************************************************
+ * int tcp_session_count_frags(tcp_session *ts);
+ * 	count the number of fragments
+ */
+
+int tcp_session_count_frags(tcp_session *ts)
+{
+	tcp_frag * curr;
+	int count=0;
+	assert(ts);
+	curr = ts->next;
+	while(curr)
+	{
+		count++;
+		curr=curr->next;
+	}
+	return count;
+}
+

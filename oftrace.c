@@ -310,3 +310,22 @@ double oftrace_progress(oftrace *oft)
 	return (double)fpos/ (double) sbuf.st_size;
 }
 
+
+/***************************************************
+ * int oftrace_tcp_stats(oftrace *oft, int len, int *list);
+ * 	return an integer array, where each element is the number of stored tcp fragments
+ * 	of each tcp session being tracked
+ * 	caller allocates list, and specifies its initial length via len
+ * 	return the total number of sessions tracked; fill in min(len,n_sessions)
+ * 	elements into the array
+ */
+
+int oftrace_tcp_stats(oftrace *oft, int len, int *list)
+{
+	int i;
+	assert(oft);
+	for(i=0;i<MIN(oft->n_sessions,len);i++)
+		list[i] = tcp_session_count_frags(oft->sessions[i]);
+	return oft->n_sessions;
+}
+

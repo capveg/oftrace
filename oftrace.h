@@ -194,4 +194,11 @@ int oftrace_rewind(oftrace * oft);
 // return the fraction of the file processed from 0 to 1
 double oftrace_progress(oftrace *oft);
 
+// return an integer array, where each element is the number of stored tcp fragments
+//  of each tcp session being tracked
+//  caller allocates list, and specifies its initial length via len
+//  return the total number of sessions tracked; fill in min(len,n_sessions)
+//  elements into the array
+int oftrace_tcp_stats(oftrace *oft, int len, int *list);
+
 #endif

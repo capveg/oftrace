@@ -39,6 +39,10 @@ without specific, written prior permission.
 
 #include "oftrace.h"
 
+#ifndef MIN
+#define MIN(x,y) ((x)<(y)?(x):(y))
+#endif
+
 /************************
  * main()
  *
@@ -82,6 +86,8 @@ int main(int argc, char * argv[])
 int do_analyze(oftrace * oft, uint32_t ip, int port)
 {
 	int count = 0;
+	int tcp_list[BUFLEN];
+	int n_sessions,i;
 	const openflow_msg *m;
 	char dst_ip[BUFLEN];
 	char src_ip[BUFLEN];
@@ -92,6 +98,14 @@ int do_analyze(oftrace * oft, uint32_t ip, int port)
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
 		count ++;
+		if((count%1000)==0)
+		{
+			n_sessions =oftrace_tcp_stats(oft,BUFLEN,tcp_list);
+			fprintf(stderr," --- %d sessions: ",n_sessions);
+			for(i=0;i<MIN(n_sessions,BUFLEN);i++)
+				fprintf(stderr, " %d",tcp_list[i]);
+		 	fprintf(stderr,"\n");
+		}
 		if(start.tv_sec == 0)
 		{
 			start.tv_sec = m->phdr.ts_sec;

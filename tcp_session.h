@@ -80,4 +80,9 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno, char * data, int cap_
  */
 int tcp_session_pull(tcp_session * ts, int len);
 
+/*************************
+ * 	count the number of stored fragments
+ */
+int tcp_session_count_frags(tcp_session *ts);
+
 #endif
