@@ -105,6 +105,7 @@ oftrace * oftrace_open(char * filename)
 	}
 	assert(oft->ghdr.network == DLT_EN10MB);	// currently, we only handle ethernet :-(
 	oft->max_sessions = 10;			// will dynamically re-allocate - don't worry
+	oft->n_sessions=0;			// redundant with bzero()
 	oft->sessions = malloc_and_check(oft->max_sessions * sizeof(tcp_session));
 	oft->file=pcap;
 	oft->filename=strdup(filename);
