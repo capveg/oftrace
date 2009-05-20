@@ -37,6 +37,38 @@ without specific, written prior permission.
 #include "utils.h"
 
 
+/********************************************************
+ * Return whether seq1 came before or after seq2
+ * 	use PAWS-like hack to address wrapping
+ * 	return -1 if seq1 happens before seq2
+ * 	return 1 if seq1 happens after seq2
+ * 	return 0 if seq1 equals seq2
+ */
+
+#define PAWS_FUDGE_FACTOR (1<<20)
+static int seqno_cmp(uint32_t seq1,uint32_t seq2)
+{
+	uint32_t diff;
+	if(seq1 == seq2)
+		return 0;
+	if(seq1 < seq2)
+	{
+		diff = seq2 - seq1;
+		if(diff < PAWS_FUDGE_FACTOR)
+			return -1;	// normal, non-wrapped case
+		else 
+			return 1;	// must have wrapped
+	}
+	else
+	{
+		diff = seq1 - seq2;
+		if(diff < PAWS_FUDGE_FACTOR)
+			return 1;	// normal, non-wrapped case
+		else 
+			return -1;	// must have wrapped
+	}
+}
+
 /***********************
  * malloc and create a new tcp_session
  */
