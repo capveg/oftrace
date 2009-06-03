@@ -178,13 +178,21 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		}
 		index = 0;
 		// if linux link header, skip it
-		if(oft->ghdr.network == DLT_LINUX_SLL)
+		if(oft->ghdr.network == DLT_LINUX_SLL)	// linux_sll parsing
+		{
+			msg->linux_sll = (struct dlt_linux_sll *) &msg->data[index];
 			index += sizeof(struct dlt_linux_sll);
-		// ethernet parsing
-		msg->ether = (struct oft_ethhdr *) &msg->data[index];
+			// hack in the ether type field
+			msg->ether= (struct oft_ethhdr * ) &msg->data[index-sizeof(struct oft_ethhdr)];
+		}
+		else // ethernet parsing
+		{
+			msg->linux_sll = NULL;
+			msg->ether = (struct oft_ethhdr *) &msg->data[index];
+			index+=sizeof(struct ether_header);
+		}
 		if(msg->ether->ether_type != htons(ETHERTYPE_IP))
 			continue;		// ether frame doesn't contain IP
-		index+=sizeof(struct ether_header);
 		if( msg->captured < index)
 		{
 			fprintf(stderr, "captured partial ethernet frame -- skipping (but weird)\n");

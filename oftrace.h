@@ -172,6 +172,7 @@ typedef struct openflow_msg
 	// OFPT_something
 	uint16_t type;		
 	// convenience pointers
+	struct dlt_linux_sll *linux_sll;
 	struct oft_ethhdr * ether;
 	struct oft_iphdr * ip;
 	struct oft_tcphdr * tcp;
