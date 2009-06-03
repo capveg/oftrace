@@ -46,7 +46,7 @@ without specific, written prior permission.
  */
 
 #define PAWS_FUDGE_FACTOR (1<<20)
-static int seqno_cmp(uint32_t seq1,uint32_t seq2)
+int seqno_cmp(uint32_t seq1,uint32_t seq2)
 {
 	uint32_t diff;
 	if(seq1 == seq2)
@@ -161,7 +161,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 
 	while(curr)	// search for where this frag fits into the stream
 	{
-		if((seqno +full_len) < curr->start_seq)	// have we gone too far?
+		if((seqno +full_len) < curr->start_seq)	// have we gone too far?	// FIXME: PAWS!
 			break;
 		else if(seqno >= (curr->start_seq + curr->len) )	// not far enough; next
 		{
@@ -171,10 +171,10 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 		else
 		{
 			// if we are here, there is some level of (partial?) overlap
-			start_overlap = MAX(seqno,curr->start_seq);
-			end_overlap   = MIN(seqno+full_len, curr->start_seq + curr->len);
+			start_overlap = MAX(seqno,curr->start_seq);	// FIXME: PAWS!
+			end_overlap   = MIN(seqno+full_len, curr->start_seq + curr->len);	// FIXME: PAWS!
 			if(memcmp(&curr->data[curr->start_seq-start_overlap], 
-						&data[seqno-start_overlap],
+						&data[start_overlap-seqno],
 						end_overlap - start_overlap) != 0)
 			{
 				inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
@@ -185,7 +185,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 						dstaddr, ts->dport,
 						start_overlap, end_overlap - start_overlap);
 			}
-			if(seqno < start_overlap)	// is there something new before the overlap?
+			if(seqno < start_overlap)	// is there something new before the overlap?	// FIXME: PAWS!
 			{
 				// create a new frag just for the new part before the current frag
 				// FIXME: this is duplicated code from outside the while(); not obvious how to fix

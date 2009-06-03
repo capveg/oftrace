@@ -67,6 +67,15 @@ typedef struct pcaprec_hdr_s {
 	uint32_t orig_len;       /* actual length of packet */
 } pcaprec_hdr_t;
 
+struct dlt_linux_sll	// copied from http://www.mail-archive.com/tcpdump-workers@lists.tcpdump.org/msg00944.html
+{
+	uint16_t packet_type;
+	uint16_t ARPHRD;
+	uint16_t slink_length;
+	uint8_t  bytes[8];
+	uint16_t ether_type;
+};
+
 // convenience pointers for some openflow messages
 
 typedef union openflow_msg_ptr {

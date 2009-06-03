@@ -103,7 +103,8 @@ oftrace * oftrace_open(char * filename)
 		}
 		return NULL;
 	}
-	assert(oft->ghdr.network == DLT_EN10MB);	// currently, we only handle ethernet :-(
+	assert(oft->ghdr.network == DLT_EN10MB || 	// currently, we only handle ethernet :-(
+			oft->ghdr.network == DLT_LINUX_SLL);	// or the LINUX link encap
 	oft->max_sessions = 10;			// will dynamically re-allocate - don't worry
 	oft->n_sessions=0;			// redundant with bzero()
 	oft->sessions = malloc_and_check(oft->max_sessions * sizeof(tcp_session));
@@ -176,6 +177,9 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			return NULL;	// not found; stop
 		}
 		index = 0;
+		// if linux link header, skip it
+		if(oft->ghdr.network == DLT_LINUX_SLL)
+			index += sizeof(struct dlt_linux_sll);
 		// ethernet parsing
 		msg->ether = (struct oft_ethhdr *) &msg->data[index];
 		if(msg->ether->ether_type != htons(ETHERTYPE_IP))
