@@ -44,7 +44,7 @@ from oftrace import oftrace
 import copy
 import pdb
 
-Infinity=-10.0
+Infinity=10.0
 MinProgress=0.001
 
 def main():
