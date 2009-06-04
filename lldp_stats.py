@@ -139,9 +139,11 @@ def calc_stats(filename,controller,port):
 
 def print_dropped(list,key):
 	msg = list[key]
-	print ("%ld.%.6ld secs_to_resp-dropped! %s from %s:%u -> %s:%u (%d packets queued)") % \
+	print ("%ld.%.6ld secs_to_resp-dropped! %ld.%.6ld %s from %s:%u -> %s:%u (%d packets queued)") % \
 		(Infinity,
 		 0,
+		 msg['sec'],
+		 msg['usec'],
 		 key,
 		 msg["src_ip"],
 		 ntohs(msg['tcp_src']),
