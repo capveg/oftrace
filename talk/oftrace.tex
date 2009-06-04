@@ -69,10 +69,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
 \frametitle{Answer: Nox Processing Time}
+\begin{center}
+\includegraphics[width=\textwidth]{figures/ofstats_mixed}
+\end{center}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
 \frametitle{Answer: LLDP RTT Distribution}
+\begin{center}
+\includegraphics[width=\textwidth]{figures/lldp_by_switch}
+\end{center}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
@@ -100,6 +106,26 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
 \frametitle{API}
+\begin{enumerate}
+\item oftrace * {\blue oftrace\_open}(char * pcapfile);
+\item const openflow\_msg * {\blue oftrace\_next\_msg}(oftrace * oft, uint32\_t ip, int port);
+\item int {\blue oftrace\_rewind}(oftrace * oft);
+\item double {\blue oftrace\_progress}(oftrace *oft);
+\end{enumerate}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Oftrace Mesg Struct}
+Raw Data + Conveinience Pointers
+\begin{enumerate}
+\item ethernet header
+\item ip header
+\item tcp header
+\item openflow header
+\item (union) openflow message type
+\item embedded packets
+\item captured size, total size,etc.
+\end{enumerate}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
@@ -107,7 +133,27 @@
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
-\frametitle{Other tools}
+\frametitle{Tools}
+\begin{itemize}
+\item ofstats: controller response time
+\subbullet{first graph}
+\item lldp\_stats: discovery RTT
+\subbullet{second graph}
+\item ofdump : lists types and sizes of OF msgs
+\item ??
+\end{itemize}
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{frame}
+\frametitle{Implementation}
+\begin{itemize}
+\item ~700 lines of C (core library)
+\item Re-ordering is a pain
+\item DLT\_10MB vs. DLT\_LINUX\_SLL
+\item Sequence number wrapping 
+\item Swig : accessing raw data
+\subbullet{cdata}
+\end{itemize}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{frame}
@@ -125,7 +171,8 @@
 \item Analyzing OpenFlow can be painful
 \item oftrace can help you
 \item I've written some tools that I think are useful
-\item Please contribute your own
+\item Please contribute your own 
+\item http://www.openflowswitch.org/wk/Liboftrace
 \end{itemize}
 \end{frame}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
