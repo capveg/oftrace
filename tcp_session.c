@@ -145,6 +145,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	char srcaddr[BUFLEN];
 	char dstaddr[BUFLEN];
 	char *data,*orig_data;
+	int count=0;
 	tcp_frag *curr, *prev, *neo;
 	uint32_t start_overlap, end_overlap;
 
@@ -161,6 +162,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 
 	while(curr)	// search for where this frag fits into the stream
 	{
+		count++;
 		if((seqno +full_len) < curr->start_seq)	// have we gone too far?	// FIXME: PAWS!
 			break;
 		else if(seqno >= (curr->start_seq + curr->len) )	// not far enough; next
