@@ -77,6 +77,7 @@ tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 {
 	tcp_session * ts = malloc_and_check(sizeof(tcp_session));
 	ts->sip=ip->saddr;
+	ts->n_segs=0;
 	ts->dip=ip->daddr;
 	ts->sport=tcp->source;	// network byte order!
 	ts->dport=tcp->dest;	// network byte order!
@@ -145,7 +146,6 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	char srcaddr[BUFLEN];
 	char dstaddr[BUFLEN];
 	char *data,*orig_data;
-	int count=0;
 	tcp_frag *curr, *prev, *neo;
 	uint32_t start_overlap, end_overlap;
 
@@ -162,7 +162,6 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 
 	while(curr)	// search for where this frag fits into the stream
 	{
-		count++;
 		if((seqno +full_len) < curr->start_seq)	// have we gone too far?	// FIXME: PAWS!
 			break;
 		else if(seqno >= (curr->start_seq + curr->len) )	// not far enough; next
@@ -186,6 +185,13 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 						srcaddr, ts->sport,
 						dstaddr, ts->dport,
 						start_overlap, end_overlap - start_overlap);
+				fprintf(stderr,"before:	%x%x%x\nafter:	%x%x%x",
+						*(uint32_t *)&data[start_overlap-seqno],
+						*(uint32_t *)&data[start_overlap-seqno + sizeof(uint32_t)],
+						*(uint32_t *)&data[start_overlap-seqno + sizeof(uint32_t)*2],
+						*(uint32_t *)&curr->data[curr->start_seq-start_overlap],
+						*(uint32_t *)&curr->data[curr->start_seq-start_overlap +sizeof(uint32_t)],
+						*(uint32_t *)&curr->data[curr->start_seq-start_overlap +sizeof(uint32_t)*2]);
 			}
 			if(seqno < start_overlap)	// is there something new before the overlap?	// FIXME: PAWS!
 			{
@@ -194,6 +200,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 				neo = malloc_and_check(sizeof(tcp_frag));
 				neo->start_seq = seqno;
 				neo->len = start_overlap - seqno;
+				ts->n_segs++;
 				memcpy(neo->data,data,neo->len);
 				data+=neo->len;		// move our new data pointer forward the amount we added
 				full_len -= neo->len;
@@ -225,6 +232,7 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	neo->len = full_len;
 	memcpy(neo->data,data,neo->len);
 	neo->next = curr;
+	ts->n_segs++;
 	if(prev)
 		prev->next = neo;
 	else
@@ -264,6 +272,8 @@ int tcp_session_pull(tcp_session * ts, int len)
 			len -= curr->len;
 			ts->next = curr->next;
 			ts->seqno = curr->start_seq+curr->len;
+			assert(ts->n_segs>0);
+			ts->n_segs--;
 			free(curr);
 		}
 		else
@@ -273,6 +283,8 @@ int tcp_session_pull(tcp_session * ts, int len)
 			neo = malloc_and_check(sizeof(tcp_frag));
 			neo->start_seq = curr->start_seq + len;
 			neo->len = curr->len-len;
+			// don't increment or decrement ts->n_segs
+			// we just removed one and added one
 			memcpy(neo->data,&curr->data[len],neo->len);
 			neo->next = curr->next;
 			ts->next = neo;
@@ -292,15 +304,8 @@ int tcp_session_pull(tcp_session * ts, int len)
 
 int tcp_session_count_frags(tcp_session *ts)
 {
-	tcp_frag * curr;
-	int count=0;
 	assert(ts);
-	curr = ts->next;
-	while(curr)
-	{
-		count++;
-		curr=curr->next;
-	}
-	return count;
+	assert(ts->n_segs>=0);
+	return ts->n_segs;
 }
 

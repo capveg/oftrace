@@ -49,6 +49,7 @@ typedef struct tcp_session {
 	uint16_t dport;	// stored in network byte order!
 	uint32_t seqno;	// stored in HOST byte order
 	tcp_frag * next;
+	int n_segs;
 } tcp_session;
 
 
