@@ -36,6 +36,8 @@ without specific, written prior permission.
 #include "tcp_session.h"
 #include "utils.h"
 
+static int pcap_dropped_segment_test(tcp_session * ts);
+static char * data2hexstr(char * data, int n_bytes,char * buf, int buflen);
 
 /********************************************************
  * Return whether seq1 came before or after seq2
@@ -81,7 +83,7 @@ tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 	ts->dip=ip->daddr;
 	ts->sport=tcp->source;	// network byte order!
 	ts->dport=tcp->dest;	// network byte order!
-	ts->seqno = ntohl(tcp->seq);	// host byte order (we do arith on this)
+	ts->isn = ts->seqno = ntohl(tcp->seq);	// host byte order (we do arith on this)
 	ts->next=NULL;	
 
 	return ts;
@@ -121,6 +123,7 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 	int min;
 	assert(ts);
 
+	pcap_dropped_segment_test(ts);
 	curr = ts->next;
 	seqno = ts->seqno;
 	while(curr)
@@ -143,8 +146,8 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
  */
 int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int cap_len, int full_len)
 {
-	char srcaddr[BUFLEN];
-	char dstaddr[BUFLEN];
+	char srcaddr[BUFLEN],srcbuf[BUFLEN];
+	char dstaddr[BUFLEN],dstbuf[BUFLEN];
 	char *data,*orig_data;
 	tcp_frag *curr, *prev, *neo;
 	uint32_t start_overlap, end_overlap;
@@ -159,6 +162,14 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	// setup initial pointers
 	prev=NULL;
 	curr = ts->next;
+
+	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
+	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
+	if(cap_len< full_len)
+		fprintf(stderr,"WARN: incomplete capture (filling with zeros- hope that's okay!) for flow  "
+				"%s:%u-> %s:%u \n",
+				srcaddr, ts->sport,
+				dstaddr, ts->dport);
 
 	while(curr)	// search for where this frag fits into the stream
 	{
@@ -178,20 +189,14 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 						&data[start_overlap-seqno],
 						end_overlap - start_overlap) != 0)
 			{
-				inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
-				inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
 				fprintf(stderr,"WEIRD: ignoring inconsistant overlapping segments for "
 						"%s:%u-> %s:%u start_overlap %u end %u\n",
 						srcaddr, ts->sport,
 						dstaddr, ts->dport,
 						start_overlap, end_overlap - start_overlap);
-				fprintf(stderr,"before:	%x%x%x\nafter:	%x%x%x",
-						*(uint32_t *)&data[start_overlap-seqno],
-						*(uint32_t *)&data[start_overlap-seqno + sizeof(uint32_t)],
-						*(uint32_t *)&data[start_overlap-seqno + sizeof(uint32_t)*2],
-						*(uint32_t *)&curr->data[curr->start_seq-start_overlap],
-						*(uint32_t *)&curr->data[curr->start_seq-start_overlap +sizeof(uint32_t)],
-						*(uint32_t *)&curr->data[curr->start_seq-start_overlap +sizeof(uint32_t)*2]);
+				fprintf(stderr,"before:	%s\nafter:	%s\n",
+						data2hexstr(&data[start_overlap-seqno],10,srcbuf,BUFLEN),
+						data2hexstr(&curr->data[curr->start_seq-start_overlap],10,dstbuf,BUFLEN));
 			}
 			if(seqno < start_overlap)	// is there something new before the overlap?	// FIXME: PAWS!
 			{
@@ -246,7 +251,8 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 
 /****************************
  * 	remove/dequeue len bytes from this session
- * 		return 0 if len continuguous bytes not available
+ * 		if there are holes in the space, erase the holes as well
+ * 			(used by pcap_dropped_segment_test() as well)
  * 		don't bother copying it, b/c the tcp_session_peek pretty
  * 		much already does that
  */
@@ -262,10 +268,12 @@ int tcp_session_pull(tcp_session * ts, int len)
 			fprintf(stderr,"WARNING: tried to tcp_session_pull() more than was there :-(\n");
 			return -1;
 		}
-		if(curr->start_seq != ts->seqno)
+		if(curr->start_seq != ts->seqno)	// is there a hole?
 		{
-			fprintf(stderr,"WARNING: tried to tcp_session_pull() non-contiguous data\n");
-			return -1;
+			len -= curr->start_seq - ts->seqno;	// skip the hole: FIXME PAWS
+			ts->seqno = curr->start_seq;
+			if(len<=0)			
+				break;
 		}
 		if(curr->len <= len) 	// do we erase the whole fragment?
 		{
@@ -309,3 +317,55 @@ int tcp_session_count_frags(tcp_session *ts)
 	return ts->n_segs;
 }
 
+/*********************************************************
+ * test to see if pcap dropped a packet and we are blocking on
+ * it; pretty hackish but apparently necessary
+ */
+static int pcap_dropped_segment_test(tcp_session * ts)
+{
+	char srcaddr[BUFLEN];
+	char dstaddr[BUFLEN];
+	tcp_frag *curr;
+	struct ofp_header * ofph;
+	char * what_skipped;
+
+	assert(ts);
+	if(ts->n_segs < 200)	// make sure we have 200+ queued segments 
+		return 0;	// before we even think about this test
+	curr = ts->next;
+	ofph = (struct ofp_header * ) curr->data;
+	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
+	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
+	if( ( ofph->version == OFP_VERSION ) 	// version is sane
+			&& ( ofph->type <= OFPT_STATS_REPLY)	// type is sane
+			&& ( ntohs(ofph->length) <= 6000))	// length is sane (arbitary)
+	{
+		// we have a valid openflow header
+		tcp_session_pull(ts,ntohs(ofph->length));	// just skip this message
+		what_skipped = "openflow message";
+	}
+	else
+	{
+		ts->next = curr->next;
+		free(curr);
+		what_skipped = "tcp segment";
+	}
+	fprintf(stderr,"WARN: corrupted trace for flow %s:%d->%s:%d : too many segments queued; skipping a %s to pray we fix it\n",
+			srcaddr,ntohs(ts->sport),dstaddr,ntohs(ts->dport),what_skipped);
+	return 1;
+}
+/********************************************************
+ * print the first n bytes of data into a static string 
+ * 	and return it
+ */
+static char * data2hexstr(char * data, int n_bytes,char * buf, int buflen)
+{
+	int i;
+	int min = MIN(n_bytes,buflen/2);
+	buf[0]='0';
+	buf[1]='x';
+	for(i=0;i< min; i++)
+		sprintf(&buf[2*i+2],"%.2x",data[i]); 
+	buf[2*min+2]=0;	
+	return buf;
+}
