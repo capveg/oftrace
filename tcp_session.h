@@ -33,6 +33,12 @@ without specific, written prior permission.
 #ifndef TCP_SESSION_H
 #define TCP_SESSION_H
 
+#define OFTRACE_DELETE_FLOW -1
+#define OFTRACE_OK 0 
+
+#define OFTRACE_SKIP_LIMIT 100
+#define OFTRACE_QUEUE_LIMIT 200
+
 // hack to get uint32_t etc..
 #include "oftrace.h"
 typedef struct tcp_frag {
@@ -49,8 +55,10 @@ typedef struct tcp_session {
 	uint16_t dport;	// stored in network byte order!
 	uint32_t seqno;	// stored in HOST byte order
 	uint32_t isn;	// stored in HOST byte order (initial seqno)
-	tcp_frag * next;
 	int n_segs;
+	int skipped_count;
+	int close_on_empty;
+	tcp_frag * next;
 } tcp_session;
 
 
@@ -62,6 +70,12 @@ tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp);
  */
 tcp_session * tcp_session_find(tcp_session ** sessions, int n_sessions,struct oft_iphdr * ip, struct oft_tcphdr * tcp);
 
+/***************************
+ * 	remove the session from the lists of sessions
+ * 	and free it's contents
+ * 	throw an assert if not found
+ */
+int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * ts);
 /****************************
  * 	does this session have at least len contiguous bytes queued?
  * 	if yes, copy them to data, but don't dequeue, return 1
@@ -86,5 +100,10 @@ int tcp_session_pull(tcp_session * ts, int len);
  * 	count the number of stored fragments
  */
 int tcp_session_count_frags(tcp_session *ts);
+
+/************************
+ * set close_on_empty flag
+ */
+int tcp_session_close(tcp_session ** sessions, int * n_sessions,tcp_session *ts);
 
 #endif

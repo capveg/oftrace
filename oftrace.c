@@ -218,6 +218,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		msg->tcp = (struct oft_tcphdr * ) &msg->data[index];
 		index += msg->tcp->doff*4;
 		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
+		if(msg->tcp->rst || msg->tcp->fin)
+			tcp_session_close(oft->curr);	// mark the session "close on empty"
 		if(msg->captured <= index)
 			continue;	// tcp packet has no payload (e.g., an ACK)
 		if(payload_len <=0)
@@ -262,7 +264,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// does there exist a full openflow msg buffered?
 			continue;
 		found =1;
-		tcp_session_pull(oft->curr,tmplen);
+		if(OFTRACE_DELETE_FLOW == tcp_session_pull(oft->curr,tmplen))
+			tcp_session_delete(oft->sessions,&oft->n_sessions,oft->curr);
 	}
 	assert(found==1);
 	assert(tmplen>0);

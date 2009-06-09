@@ -84,6 +84,8 @@ tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 	ts->sport=tcp->source;	// network byte order!
 	ts->dport=tcp->dest;	// network byte order!
 	ts->isn = ts->seqno = ntohl(tcp->seq);	// host byte order (we do arith on this)
+	ts->close_on_empty= 0;
+	ts->skipped_count=0;
 	ts->next=NULL;	
 
 	return ts;
@@ -139,6 +141,15 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 		curr=curr->next;
 	}
 	return 0;	// ran out of fragments before finding len bytes
+}
+
+int tcp_session_close(tcp_session ** sessions, int * n_sessions,tcp_session * ts)
+{
+	assert(ts);
+	if(ts->next == NULL )
+		 return tcp_session_delete(sessions,n_sessions,ts);	// just delete now; is empty
+	ts->close_on_empty = 1;
+	return 0;
 }
 
 /****************************
@@ -266,7 +277,7 @@ int tcp_session_pull(tcp_session * ts, int len)
 		if(curr == NULL)
 		{
 			fprintf(stderr,"WARNING: tried to tcp_session_pull() more than was there :-(\n");
-			return -1;
+			break;
 		}
 		if(curr->start_seq != ts->seqno)	// is there a hole?
 		{
@@ -301,7 +312,10 @@ int tcp_session_pull(tcp_session * ts, int len)
 			len= 0;
 		}
 	}
-	return 0;
+	if(ts->close_on_empty || (ts->skipped_count > OFTRACE_SKIP_LIMIT))
+		return OFTRACE_DELETE_FLOW;
+	else
+		return OFTRACE_OK;
 }
 
 
@@ -351,6 +365,7 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 		free(curr);
 		what_skipped = "a tcp segment";
 	}
+	ts->skipped_count++;
 	fprintf(stderr,"WARN: corrupted trace for flow %s:%d->%s:%d : too many segments queued; skipping %s to pray we fix it\n",
 			srcaddr,ntohs(ts->sport),dstaddr,ntohs(ts->dport),what_skipped);
 	return 1;
@@ -370,3 +385,32 @@ static char * data2hexstr(char * data, int n_bytes,char * buf, int buflen)
 	buf[2*min+2]=0;	
 	return buf;
 }
+
+/******************************************************
+ * delete this session and free its resources
+ * 	throw an assert if not found
+ */
+
+int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * ts)
+{
+	int i;
+	tcp_frag * curr, * prev;
+	int tcp_session_not_found=0;
+	for(i=0;i<*n_sessions;i++)
+		if(sessions[i] == ts)
+			break;
+	if(i>=*n_sessions)
+		assert(tcp_session_not_found);
+	(*n_sessions)--;
+	sessions[i]=sessions[*n_sessions];
+	curr = ts->next;
+	while(curr)
+	{
+		prev=curr;
+		curr = curr->next;
+		free(prev);
+	}
+	free(ts);	
+	return 0;
+}
+
