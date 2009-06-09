@@ -218,10 +218,6 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		msg->tcp = (struct oft_tcphdr * ) &msg->data[index];
 		index += msg->tcp->doff*4;
 		payload_len = ip_packet_len - 4*(msg->ip->ihl + msg->tcp->doff);
-		if(msg->tcp->rst || msg->tcp->fin)
-			tcp_session_close(oft->curr);	// mark the session "close on empty"
-		if(msg->captured <= index)
-			continue;	// tcp packet has no payload (e.g., an ACK)
 		if(payload_len <=0)
 			continue;	// skip if the only thing left is an ethernet trailer
 		// Is this to or from the controller?
@@ -251,6 +247,10 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session*)*oft->max_sessions);
 			}
 		}
+		if(msg->tcp->rst || msg->tcp->fin)
+			tcp_session_close(oft->sessions,&oft->n_sessions,oft->curr);	// mark the session "close on empty"
+		if(msg->captured <= index)
+			continue;	// tcp packet has no payload (e.g., an ACK)
 		// add this data to the sessions' tcp stream
 		tcp_session_add_frag(oft->curr,ntohl(msg->tcp->seq),
 				&msg->data[index],	
