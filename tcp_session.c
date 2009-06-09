@@ -342,15 +342,15 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	{
 		// we have a valid openflow header
 		tcp_session_pull(ts,ntohs(ofph->length));	// just skip this message
-		what_skipped = "openflow message";
+		what_skipped = "an openflow message";
 	}
 	else
 	{
 		ts->next = curr->next;
 		free(curr);
-		what_skipped = "tcp segment";
+		what_skipped = "a tcp segment";
 	}
-	fprintf(stderr,"WARN: corrupted trace for flow %s:%d->%s:%d : too many segments queued; skipping a %s to pray we fix it\n",
+	fprintf(stderr,"WARN: corrupted trace for flow %s:%d->%s:%d : too many segments queued; skipping %s to pray we fix it\n",
 			srcaddr,ntohs(ts->sport),dstaddr,ntohs(ts->dport),what_skipped);
 	return 1;
 }
