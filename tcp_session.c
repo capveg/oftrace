@@ -330,13 +330,14 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	char * what_skipped;
 
 	assert(ts);
-	if(ts->n_segs < 200)	// make sure we have 200+ queued segments 
+	if(ts->n_segs < OFTRACE_QUEUE_LIMIT)	// make sure we have ~200+ queued segments 
 		return 0;	// before we even think about this test
 	curr = ts->next;
 	ofph = (struct ofp_header * ) curr->data;
 	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
 	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
-	if( ( ofph->version == OFP_VERSION ) 	// version is sane
+	if( (curr->len>sizeof(struct ofp_header))
+			&& ( ofph->version == OFP_VERSION ) 	// version is sane
 			&& ( ofph->type <= OFPT_STATS_REPLY)	// type is sane
 			&& ( ntohs(ofph->length) <= 6000))	// length is sane (arbitary)
 	{
