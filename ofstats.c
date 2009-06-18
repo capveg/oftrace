@@ -112,7 +112,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 	// for each openflow msg
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
-		fprintf(stderr,"------------ %f done\n", oftrace_progress(oft));
+		fprintf(stderr,"------------ %f done\r", oftrace_progress(oft));
 		switch(m->type)
 		{
 			case OFPT_PACKET_IN:
@@ -135,7 +135,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 					memcpy(b->data,m->ptr.packet_in->data,b->datalen);
 					b->next=b_list;
 					b_list = b;
-					if(etype != ETHERTYPE_IP && etype != ETHERTYPE_ARP)
+					if(etype != ETHERTYPE_IP && etype != ETHERTYPE_ARP && etype!= ETHERTYPE_VLAN)
 						fprintf(stderr,"ADDING packet_in ether_type=%.4x\n",etype);
 				}
 				break;
