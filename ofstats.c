@@ -36,6 +36,7 @@ without specific, written prior permission.
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>	// alternative location for handy time macro
 #include <time.h>	// for handy macro
 
 
