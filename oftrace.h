@@ -51,6 +51,14 @@ without specific, written prior permission.
 #define PCAP_MAGIC 		0xa1b2c3d4
 #define PCAP_BACKWARDS_MAGIC 	0xd4c3b2a1
 
+#ifndef DLT_EN10MB
+#define DLT_EN10MB      1       /* Ethernet (10Mb) */
+#endif
+#ifndef DLT_LINUX_SSL 
+#define DLT_LINUX_SLL   113
+#endif
+
+
 #ifndef BUFLEN
 // max packetsize * fudge factor of two
 #define BUFLEN (65536<<1)
