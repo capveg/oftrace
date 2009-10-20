@@ -362,6 +362,7 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	else
 	{
 		ts->next = curr->next;
+		ts->seqno = ts->next->start_seq;
 		free(curr);
 		what_skipped = "a tcp segment";
 	}
