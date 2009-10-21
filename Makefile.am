@@ -5,8 +5,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 OFSRC=@openflowsrc@
 
-AM_CFLAGS = -Wall -Werror -g -O0 -I$(OFSRC)/include -I$(OFSRC)/lib  @LARGEFILES_CFLAGS@
-AM_LDFLAGS = -g -O0 -L$(OFSRC)/lib -lm  @LARGEFILES_LDFLAGS@
+AM_CFLAGS = -Wall -I$(OFSRC)/include -I$(OFSRC)/lib  @LARGEFILES_CFLAGS@
+AM_LDFLAGS = -L$(OFSRC)/lib -lm  @LARGEFILES_LDFLAGS@
 
 LDADD=$(OFSRC)/lib/libopenflow.a
 
@@ -27,10 +27,10 @@ liboftrace_la_SOURCES= oftrace.c oftrace.h	\
 		tcp_session.c  tcp_session.h
 
 ofdump_SOURCES = ofdump.c
-ofdump_LDADD = liboftrace.la
+ofdump_LDADD = liboftrace.a
 
 ofstats_SOURCES = ofstats.c
-ofstats_LDADD = liboftrace.la
+ofstats_LDADD = liboftrace.a
 
 pkgpython_PYTHON = __init__.py
 nodist_pkgpython_PYTHON=oftrace.py
@@ -39,7 +39,7 @@ _oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i
 _oftrace_la_LDFLAGS = -module $(AM_LDFLAGS)
 _oftrace_la_CFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
 _oftrace_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
-_oftrace_la_LIBADD = liboftrace.la
+_oftrace_la_LIBADD = liboftrace.a
 
 oftrace_wrap_python.c: oftrace.i
 	swig -python -module oftrace -o $@ $<	
