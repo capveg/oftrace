@@ -98,7 +98,7 @@ int do_analyze(oftrace * oft, uint32_t ip, int port)
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
 		count ++;
-		if((count%1000)==0)
+		if((count%10000)==0)
 		{
 			n_sessions =oftrace_tcp_stats(oft,BUFLEN,tcp_list);
 			fprintf(stderr," --- %d sessions: ",n_sessions);

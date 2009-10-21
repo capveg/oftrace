@@ -81,6 +81,9 @@ AC_PROG_CXX
 AC_PROG_LIBTOOL
 AC_PYTHON_DEVEL
 
+# ??? automake told me to add this..
+AM_PROG_CC_C_O
+
 #custom
 LARGE_FILES
 

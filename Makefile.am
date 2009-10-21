@@ -27,10 +27,12 @@ liboftrace_la_SOURCES= oftrace.c oftrace.h	\
 		tcp_session.c  tcp_session.h
 
 ofdump_SOURCES = ofdump.c
-ofdump_LDADD = liboftrace.a
+ofdump_LDFLAGS = -static
+ofdump_LDADD = ./liboftrace.la
 
 ofstats_SOURCES = ofstats.c
-ofstats_LDADD = liboftrace.a
+ofstats_LDFLAGS = -static
+ofstats_LDADD = ./liboftrace.la
 
 pkgpython_PYTHON = __init__.py
 nodist_pkgpython_PYTHON=oftrace.py
@@ -39,7 +41,7 @@ _oftrace_la_SOURCES = oftrace_wrap_python.c oftrace.i
 _oftrace_la_LDFLAGS = -module $(AM_LDFLAGS)
 _oftrace_la_CFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
 _oftrace_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(AM_CFLAGS)
-_oftrace_la_LIBADD = liboftrace.a
+_oftrace_la_LIBADD = ./liboftrace.la
 
 oftrace_wrap_python.c: oftrace.i
 	swig -python -module oftrace -o $@ $<	

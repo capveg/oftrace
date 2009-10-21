@@ -63,6 +63,9 @@ struct oftrace {
 	openflow_msg msg;	// where the current message is actually allocated
 };
 
+static int sanity_check_of_mesg(char * tmp,int tmplen);
+
+
 /**********************************************************
  * oftrace * oftrace_open(char * filename)
  * 	open and parse the global header of the pcap file
@@ -146,10 +149,27 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			tmplen = ntohs(ofph->length);
 			if(tcp_session_peek(oft->curr,tmp,tmplen)==1)
 			{
-				tcp_session_pull(oft->curr,tmplen);
-				index = sizeof(struct ether_header) + (msg->ip->ihl + msg->tcp->doff) * 4;
-				found = 1;
-				msg->captured = -1; 	// indicate that the true captured amount was lost in reconstruction
+				// sigh, code duplication: FIXME
+				if(sanity_check_of_mesg(tmp,tmplen) == 0)
+				{
+					char srcbuf[BUFLEN];
+					char dstbuf[BUFLEN];
+					inet_ntop(AF_INET, &msg->ip->saddr, srcbuf, BUFLEN);
+					inet_ntop(AF_INET, &msg->ip->daddr, dstbuf, BUFLEN);
+					fprintf(stderr,"WARN: corrupted openflow control channel: giving up on %s:%d -> %s:%d\n",
+						srcbuf,
+						ntohs(msg->tcp->source),
+						dstbuf,
+						ntohs(msg->tcp->dest));
+					tcp_session_delete(oft->sessions,&oft->n_sessions,oft->curr);
+				}
+				else 
+				{
+					tcp_session_pull(oft->curr,tmplen);
+					index = sizeof(struct ether_header) + (msg->ip->ihl + msg->tcp->doff) * 4;
+					found = 1;
+					msg->captured = -1; 	// indicate that the true captured amount was lost in reconstruction
+				}
 			}
 		}
 	}
@@ -263,9 +283,26 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		tmplen = ntohs(ofph->length);
 		if(tcp_session_peek(oft->curr,tmp,tmplen)!=1)		// does there exist a full openflow msg buffered?
 			continue;
-		found =1;
-		if(OFTRACE_DELETE_FLOW == tcp_session_pull(oft->curr,tmplen))
+		// sigh, code duplication: FIXME
+		if(sanity_check_of_mesg(tmp,tmplen)== 0)
+		{
+			char srcbuf[BUFLEN];
+			char dstbuf[BUFLEN];
+			inet_ntop(AF_INET, &msg->ip->saddr, srcbuf, BUFLEN);
+			inet_ntop(AF_INET, &msg->ip->daddr, dstbuf, BUFLEN);
+			fprintf(stderr,"WARN: corrupted openflow control channel: giving up on %s:%d -> %s:%d\n",
+				srcbuf,
+				ntohs(msg->tcp->source),
+				dstbuf,
+				ntohs(msg->tcp->dest));
 			tcp_session_delete(oft->sessions,&oft->n_sessions,oft->curr);
+		}
+		else
+		{
+			if(OFTRACE_DELETE_FLOW == tcp_session_pull(oft->curr,tmplen))
+				tcp_session_delete(oft->sessions,&oft->n_sessions,oft->curr);
+			found =1;
+		}
 	}
 	assert(found==1);
 	assert(tmplen>0);
@@ -344,3 +381,19 @@ int oftrace_tcp_stats(oftrace *oft, int len, int *list)
 	return oft->n_sessions;
 }
 
+/******************************************************
+ * static int sanity_check_of_mesg(char * tmp,int tmplen);
+ * 	make sure the openflow header at tmp seems sane
+ */
+static int sanity_check_of_mesg(char * tmp,int tmplen)
+{
+	struct ofp_header *ofph;
+	ofph = (struct ofp_header * ) tmp;
+	if( (tmplen>=sizeof(struct ofp_header))
+			&& ( ofph->version == OFP_VERSION )     // version is sane
+			&& ( ofph->type <= OFPT_STATS_REPLY)    // type is sane
+			&& ( ntohs(ofph->length) <= 6000))      // length is sane (arbitary)
+		return 1;
+	else
+		return 0;
+}

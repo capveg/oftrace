@@ -137,7 +137,10 @@ int tcp_session_peek(tcp_session * ts, char * data, int len)
 		seqno +=min;		// this will autowrap, no worries about PAWS
 		index+=min;
 		if(index>=len)		// did we find all that we were looking for?
+		{
+			ts->skipped_count=0;
 			return 1;
+		}
 		curr=curr->next;
 	}
 	return 0;	// ran out of fragments before finding len bytes
@@ -350,7 +353,7 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	ofph = (struct ofp_header * ) curr->data;
 	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
 	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
-	if( (curr->len>sizeof(struct ofp_header))
+	if( (curr->len>=sizeof(struct ofp_header))
 			&& ( ofph->version == OFP_VERSION ) 	// version is sane
 			&& ( ofph->type <= OFPT_STATS_REPLY)	// type is sane
 			&& ( ntohs(ofph->length) <= 6000))	// length is sane (arbitary)
