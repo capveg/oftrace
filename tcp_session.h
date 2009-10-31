@@ -106,4 +106,10 @@ int tcp_session_count_frags(tcp_session *ts);
  */
 int tcp_session_close(tcp_session ** sessions, int * n_sessions,tcp_session *ts);
 
+/*************************
+ * expose hooks for unittesting
+ */
+
+int unittest_do_tcp_session_delete(void);
+
 #endif

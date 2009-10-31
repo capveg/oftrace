@@ -400,21 +400,103 @@ int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * 
 	int i;
 	tcp_frag * curr, * prev;
 	int tcp_session_not_found=0;
-	for(i=0;i<*n_sessions;i++)
+	for(i=0;i<(*n_sessions);i++)
 		if(sessions[i] == ts)
 			break;
 	if(i>=*n_sessions)
 		assert(tcp_session_not_found);
+	assert(*n_sessions>0);
 	(*n_sessions)--;
 	sessions[i]=sessions[*n_sessions];
 	curr = ts->next;
 	while(curr)
 	{
 		prev=curr;
+		bzero(curr,sizeof(*curr));
 		curr = curr->next;
 		free(prev);
 	}
+	bzero(ts,sizeof(*ts));
 	free(ts);	
 	return 0;
+}
+/********************************************************************
+ * static mk_test_packet(char * buf,int buflen, uint32_t sip, uint32_t dip, uint16_t sport, uint16_t dport);
+ */
+static int mk_test_packet(char * buf,int buflen, uint32_t sip, uint32_t dip, uint32_t seq, uint16_t sport, uint16_t dport, char *data, int datalen,
+		struct oft_tcphdr ** r_tcp, struct oft_iphdr ** r_ip)
+{
+	struct oft_tcphdr * tcp;
+	struct oft_iphdr * ip;
+	int size;
+	assert(BUFLEN > ( sizeof(*ip) + sizeof(*tcp) + datalen));
+
+	bzero(buf,BUFLEN);
+	size = 0;
+	ip = (struct oft_iphdr *) &buf[size];
+	size+=sizeof(*ip);
+	tcp= (struct oft_tcphdr *) &buf[size];
+	ip->saddr = sip;
+	ip->daddr = dip;
+	ip->ihl=5;
+
+	tcp->source = sport;
+	tcp->dest  = dport;
+	tcp->seq = htonl(seq);
+	tcp->doff = 5;
+	size+=sizeof(*tcp);
+	memcpy(&buf[size], data, datalen);
+	size+= datalen;
+	*r_tcp=tcp;
+	*r_ip = ip;
+	ip->tot_len = htons(size);
+	return size;
+	
+}
+
+/********************************************************************
+ * 	unitests
+ */
+
+int unittest_do_tcp_session_delete(void)
+{
+	int success=1;
+	tcp_session ** tcp_sessions;
+	int max=10;
+	int n_sessions=0;
+	char p1[BUFLEN];
+	int i,j;
+	struct oft_tcphdr * tcp;
+	struct oft_iphdr * ip;
+	char * data = "blah blah!";
+
+	tcp_sessions  = malloc( max * sizeof(tcp_session *));
+	
+	for(i = 0 ; i < 10 ; i ++ )  // make ten connections and add some data
+	{
+		mk_test_packet(p1, BUFLEN, i, 2 , // src ip, dst ip
+				0, 	// ISN
+				6633, 12345, 
+				data, strlen(data), &tcp, &ip);
+		tcp_sessions[i] = tcp_session_new(ip,tcp);
+		for( j = 0 ; j < 10 ; j ++)
+			tcp_session_add_frag(tcp_sessions[i], j * strlen(data) , data, strlen(data), strlen(data));
+	}
+	n_sessions=10;
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[0]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[9]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[6]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[4]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[1]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[3]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[5]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[7]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[2]);
+	tcp_session_delete(tcp_sessions, &n_sessions, tcp_sessions[8]);
+
+	assert(n_sessions == 0);
+
+
+	return success;
 }
 

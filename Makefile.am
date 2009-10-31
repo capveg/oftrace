@@ -13,7 +13,7 @@ LDADD=$(OFSRC)/lib/libopenflow.a
 bin_SCRIPTS=pyofdump.py pyofstats.py lldp_stats.py
 # should be redundant... but isn't for some reason :-(
 EXTRA_DIST = $(bin_SCRIPTS)
-bin_PROGRAMS=ofdump ofstats
+bin_PROGRAMS=ofdump ofstats unittest
 lib_LTLIBRARIES=liboftrace.la
 dist_man_MANS = oftrace.3
 
@@ -33,6 +33,10 @@ ofdump_LDADD = ./liboftrace.la
 ofstats_SOURCES = ofstats.c
 ofstats_LDFLAGS = -static
 ofstats_LDADD = ./liboftrace.la
+
+unittest_SOURCES = unittest.c
+unittest_LDFLAGS = -static
+unittest_LDADD = ./liboftrace.la
 
 pkgpython_PYTHON = __init__.py
 nodist_pkgpython_PYTHON=oftrace.py
