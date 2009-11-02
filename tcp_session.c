@@ -77,6 +77,7 @@ int seqno_cmp(uint32_t seq1,uint32_t seq2)
 
 tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 {
+	char srcaddr[BUFLEN], dstaddr[BUFLEN];
 	tcp_session * ts = malloc_and_check(sizeof(tcp_session));
 	ts->sip=ip->saddr;
 	ts->n_segs=0;
@@ -87,6 +88,12 @@ tcp_session * tcp_session_new(struct oft_iphdr * ip, struct oft_tcphdr * tcp)
 	ts->close_on_empty= 0;
 	ts->skipped_count=0;
 	ts->next=NULL;	
+	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
+
+	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
+	fprintf(stderr,"DBG: tracking NEW stream : %s:%u-> %s:%u \n",
+			srcaddr, ntohs(ts->sport),
+			dstaddr, ntohs(ts->dport));
 
 	return ts;
 }
@@ -175,15 +182,20 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 	memcpy(data,tmpdata,cap_len);
 	// setup initial pointers
 	prev=NULL;
-	curr = ts->next;
-
 	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
 	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
+	curr = ts->next;
+	/* fprintf(stderr,"DBG: adding seg of size %d to "
+			"%s:%u-> %s:%u \n",
+			cap_len,
+			srcaddr, ntohs(ts->sport),
+			dstaddr, ntohs(ts->dport)); */
+
 	if(cap_len< full_len)
 		fprintf(stderr,"WARN: incomplete capture (filling with zeros- hope that's okay!) for flow  "
 				"%s:%u-> %s:%u \n",
-				srcaddr, ts->sport,
-				dstaddr, ts->dport);
+				srcaddr, ntohs(ts->sport),
+				dstaddr, ntohs(ts->dport));
 
 	while(curr)	// search for where this frag fits into the stream
 	{
@@ -205,8 +217,8 @@ int tcp_session_add_frag(tcp_session * ts, uint32_t seqno , char * tmpdata, int 
 			{
 				fprintf(stderr,"WEIRD: ignoring inconsistant overlapping segments for "
 						"%s:%u-> %s:%u start_overlap %u end %u\n",
-						srcaddr, ts->sport,
-						dstaddr, ts->dport,
+						srcaddr, ntohs(ts->sport),
+						dstaddr, ntohs(ts->dport),
 						start_overlap, end_overlap - start_overlap);
 				fprintf(stderr,"before:	%s\nafter:	%s\n",
 						data2hexstr(&data[start_overlap-seqno],10,srcbuf,BUFLEN),
@@ -398,6 +410,7 @@ static char * data2hexstr(char * data, int n_bytes,char * buf, int buflen)
 int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * ts)
 {
 	int i;
+	char srcbuf[BUFLEN], dstbuf[BUFLEN];
 	tcp_frag * curr, * prev;
 	int tcp_session_not_found=0;
 	for(i=0;i<(*n_sessions);i++)
@@ -406,6 +419,12 @@ int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * 
 	if(i>=*n_sessions)
 		assert(tcp_session_not_found);
 	assert(*n_sessions>0);
+	inet_ntop(AF_INET,&ts->sip,srcbuf,BUFLEN);
+	inet_ntop(AF_INET,&ts->dip,dstbuf,BUFLEN);
+	fprintf(stderr, "DELETING %s:%d --> %s:%d with %d segments left at index %d \n",
+			srcbuf, ntohs(ts->sport), 
+			dstbuf, ntohs(ts->dport),
+			ts->n_segs, i);
 	(*n_sessions)--;
 	sessions[i]=sessions[*n_sessions];
 	curr = ts->next;

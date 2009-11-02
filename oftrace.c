@@ -264,11 +264,9 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 			if(oft->n_sessions>= oft->max_sessions)		// grow list if need be
 			{
 				oft->max_sessions*=2;
-				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session*)*oft->max_sessions);
+				oft->sessions=realloc_and_check(oft->sessions, sizeof(tcp_session)*oft->max_sessions);
 			}
 		}
-		if(msg->tcp->rst || msg->tcp->fin)
-			tcp_session_close(oft->sessions,&oft->n_sessions,oft->curr);	// mark the session "close on empty"
 		if(msg->captured <= index)
 			continue;	// tcp packet has no payload (e.g., an ACK)
 		// add this data to the sessions' tcp stream
@@ -301,6 +299,8 @@ const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port)
 		{
 			if(OFTRACE_DELETE_FLOW == tcp_session_pull(oft->curr,tmplen))
 				tcp_session_delete(oft->sessions,&oft->n_sessions,oft->curr);
+			else if(msg->tcp->rst || msg->tcp->fin)
+				tcp_session_close(oft->sessions,&oft->n_sessions,oft->curr);	// mark the session "close on empty"
 			found =1;
 		}
 	}
