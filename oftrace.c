@@ -40,30 +40,31 @@ without specific, written prior permission.
 #include "tcp_session.h"
 #include "utils.h"
 
-typedef struct pcap_hdr_s {
-	uint32_t magic_number;   /* magic number */
-	uint16_t version_major;  /* major version number */
-	uint16_t version_minor;  /* minor version number */
-	int32_t  thiszone;       /* GMT to local correction */
-	uint32_t sigfigs;        /* accuracy of timestamps */
-	uint32_t snaplen;        /* max length of captured packets, in octets */
-	uint32_t network;        /* data link type */
-} pcap_hdr_t;
-
+typedef struct oftrace_error {
+	int err_code;
+	const char * err;
+	const char * file;
+	int lineno;
+	struct oftrace_error * next;
+} oftrace_error;
 
 struct oftrace {
+	int is_offline;
 	int packet_count;
-	char * filename;
-	FILE * file;
+	char * filename_or_device;
+	pcap_t * pcap_handle;
 	int n_sessions;
 	int max_sessions;
 	tcp_session ** sessions;
 	tcp_session * curr;
-	struct pcap_hdr_s ghdr;
 	openflow_msg msg;	// where the current message is actually allocated
+	oftrace_error * head, * tail;
 };
 
-static int sanity_check_of_mesg(char * tmp,int tmplen);
+// move to a common header file
+int sanity_check_of_mesg(char * tmp,int tmplen);
+#define push_error(x,y,z) _push_error(x,y,z,__FILE__,__LINE__)
+int _push_error(oftrace * oft, int err_code, const char * err, char * file, int lineno);
 
 
 /**********************************************************
@@ -72,47 +73,27 @@ static int sanity_check_of_mesg(char * tmp,int tmplen);
  * 	(mostly to get it out of the way)
  * 	and return a pointer to our oftrace context
  */
-oftrace * oftrace_open(char * filename)
+oftrace * oftrace_open_offline(char * filename, char * filter)
 {
 	oftrace * oft;
-	FILE * pcap;
+	char errbuf[PCAP_ERRBUF_SIZE];
 	int err;
 	oft = malloc_and_check(sizeof(oftrace));
 	bzero(oft,sizeof(oftrace));
-	pcap = fopen(filename,"r");
-	if(!pcap)
+	oft->pcap = pcap_open_offline(filename,errbuf);
+	if(!oft->pcap == NULL)
 	{
-		fprintf(stderr,"Failed to open %s ; exiting\n",filename);
-		perror("fopen");
+		// FIXME: should we return a non-functioning oft that we can queue errors into?
+		free(oft);
+		fprintf(stderr, "pcap_open_offline(%s,%s) returned %s \n",
+				filename,filter, errbuf);
 		return NULL;
 	}
-	err = fread(&oft->ghdr, sizeof(oft->ghdr),1,pcap);
-	if(err != 1)
-	{
-		fprintf(stderr," Short file read on pcap global header!\n");
-		perror("fread");
-		return NULL;
-	}
-	if(oft->ghdr.magic_number != PCAP_MAGIC)	// make sure the magic number is right
-	{
-		if(oft->ghdr.magic_number == PCAP_BACKWARDS_MAGIC)
-		{
-			fprintf(stderr,"The pcap magic number is backwards: byte ordering issues?\n");
-		}
-		else
-		{
-			fprintf(stderr,"Got %u for pcap magic number: are you sure this is a pcap file?\n",
-					oft->ghdr.magic_number);
-		}
-		return NULL;
-	}
-	assert(oft->ghdr.network == DLT_EN10MB || 	// currently, we only handle ethernet :-(
-			oft->ghdr.network == DLT_LINUX_SLL);	// or the LINUX link encap
+	oft->is_offline= 1;
 	oft->max_sessions = 10;			// will dynamically re-allocate - don't worry
 	oft->n_sessions=0;			// redundant with bzero()
 	oft->sessions = malloc_and_check(oft->max_sessions * sizeof(tcp_session));
-	oft->file=pcap;
-	oft->filename=strdup(filename);
+	oft->filename_or_device=strdup(filename);
 	return oft;
 }
 /**************************************************************************

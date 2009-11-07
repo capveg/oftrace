@@ -65,16 +65,6 @@ without specific, written prior permission.
 #endif
 
 
-// #include <pcap.h>	// Ha! Fools.. pcap.h doesn't document any of this :-(
-// Grabbed from http://wiki.wireshark.org/Development/LibpcapFileFormat#head-d5fe7311203e1a2d569fd9de521699150c44f708
-//
-typedef struct pcaprec_hdr_s {
-	uint32_t ts_sec;         /* timestamp seconds */
-	uint32_t ts_usec;        /* timestamp microseconds */
-	uint32_t incl_len;       /* number of octets of packet saved in file */
-	uint32_t orig_len;       /* actual length of packet */
-} pcaprec_hdr_t;
-
 struct dlt_linux_sll	// copied from http://www.mail-archive.com/tcpdump-workers@lists.tcpdump.org/msg00944.html
 {
 	uint16_t packet_type;
@@ -196,27 +186,94 @@ typedef struct oftrace oftrace;
  * main interface
  */
 
-// pass a string to the pcap file location
-// 	return an opaque pointer to the oftrace info on success
-// 	or NULL on failure
-oftrace * oftrace_open(char * pcapfile);
+/**
+ * Create a oftrace context that parses openflow messages from a tcpdump file
+ * 	that match filterstr
+ * @param pcapfile	The filename of the tcpdump
+ * @param filterstr	A pcap-style filter string to send to pcap_set_filter()
+ * @return an oftrace context
+ */
+oftrace * oftrace_open_offline(char * pcapfile, char * filterstr);
 
-// pass an oftrace, and an IP and PORT to look for,
-// 	and a reference to an openflow_msg struct
-// 	return 1 if found, 0 otherwise 
-const openflow_msg * oftrace_next_msg(oftrace * oft, uint32_t ip, int port);
+/**
+ * Create a oftrace context that parses openflow messages on device
+ * 	that match filterstr
+ * @param device	inferface, e..g., 'eth0'
+ * @param filterstr	A pcap-style filter string to send to pcap_set_filter()
+ * @return an oftrace context
+ */
+oftrace * oftrace_open_live(char * device, char * filterstr);
 
-// restart tracing from the beginning of the pcap file (implicit on open) 
+/**
+ * pass an oftrace context and get the next openflow message in the trace
+ * @param oft a oftrace context, as returned from oftrace_open_*
+ * @return a pointer to an openflow_msg struct ;; do not free! \
+ * 	if NULL, then an error occured (call oftrace_get_error()) or EOF (if no error)
+ */
+const openflow_msg * oftrace_next_msg(oftrace * oft);
+
+
+/**
+ * Change the filter set for the oftrace to filterstr
+ * @param oft a oftrace context, as returned from oftrace_open_*
+ * @param filterstr	A pcap-style filter string to send to pcap_set_filter()
+ * @return 0 on success, -1 on error
+ */
+int oftrace_set_filter(oftrace *oft, char * filterstr);
+
+/**
+ * Return the file descriptor associated with the trace suitable for 
+ * 	input into select() or poll()
+ * Just a front end to pcap_get_selectable_fd()
+ * @param oft a oftrace context, as returned from oftrace_open_*
+ * @return -1 if an offline trace, or a valid fd otherwise
+ */
+int oftrace_get_fd(oftrace *oft);
+
+/**
+ * restart tracing from the beginning of the pcap file (implicit on open) 
+ * 	only works for an offline oftrace; will return an error for live traces
+ * @param oft	An oftrace context as returned by oftrace_open_offline()
+ * @return 0 on success, -1 on error
+ */
 int oftrace_rewind(oftrace * oft);
 
-// return the fraction of the file processed from 0 to 1
+/**
+ * return the fraction of the file processed; only makes sense for 
+ * 	an offline otrace
+ * @param oft	An oftrace context as returned by oftrace_open_offline()
+ * @return offline trace: the fraction of the file processed from 0 to 1; online return -1
+ */
 double oftrace_progress(oftrace *oft);
 
-// return an integer array, where each element is the number of stored tcp fragments
-//  of each tcp session being tracked
-//  caller allocates list, and specifies its initial length via len
-//  return the total number of sessions tracked; fill in min(len,n_sessions)
-//  elements into the array
+/**
+ * return an integer array, where each element is the number of stored tcp fragments
+ *  of each tcp session being tracked
+ *  caller allocates list, and specifies its initial length via len
+ *  elements into the array
+ *  	- used mainly for debugging the tcp segment parsing mechanism
+ *  @param oft An oftrace context as returned by oftrace_open_*()
+ *  @param len The length of the list parameter
+ *  @param list a caller-alloacted array of integers
+ *  @return the total number of sessions tracked; fill in min(len,n_sessions)
+ */
 int oftrace_tcp_stats(oftrace *oft, int len, int *list);
+
+/**
+ * Pull the next error off of the oftrace error stack.
+ * 	If no error, returns NULL and *err_code is undefined
+ * 	If error, returns a human readable string and *err_code is one of OFTRACE_ERR_*
+ * Note that non-fatal errors can be set by oftrace_next_msg() even though it returns
+ * 	a valid otrace_msg
+ * @param oft An oftrace context as returned by oftrace_open_*()
+ * @param err_code  on return, set to one of OFTRACE_ERR_*
+ * @return NULL if no error ; a human readable str if there exists an error
+ */
+const char * oftrace_get_error(oft, int *err_code);
+
+
+
+#define OFTRACE_ERR_NONE	0x00
+#define OFTRACE_ERR_PCAP	0x01
 
 #endif
