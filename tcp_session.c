@@ -432,7 +432,7 @@ int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * 
 	{
 		prev=curr;
 		curr = curr->next;
-		bzero(curr,sizeof(*curr));
+		bzero(prev,sizeof(*prev));
 		free(prev);
 	}
 	bzero(ts,sizeof(*ts));
