@@ -413,12 +413,12 @@ int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * 
 	char srcbuf[BUFLEN], dstbuf[BUFLEN];
 	tcp_frag * curr, * prev;
 	int tcp_session_not_found=0;
+	assert(*n_sessions>0);
 	for(i=0;i<(*n_sessions);i++)
 		if(sessions[i] == ts)
 			break;
 	if(i>=*n_sessions)
 		assert(tcp_session_not_found);
-	assert(*n_sessions>0);
 	inet_ntop(AF_INET,&ts->sip,srcbuf,BUFLEN);
 	inet_ntop(AF_INET,&ts->dip,dstbuf,BUFLEN);
 	fprintf(stderr, "DELETING %s:%d --> %s:%d with %d segments left at index %d \n",
@@ -431,8 +431,8 @@ int tcp_session_delete(tcp_session ** sessions, int * n_sessions, tcp_session * 
 	while(curr)
 	{
 		prev=curr;
-		bzero(curr,sizeof(*curr));
 		curr = curr->next;
+		bzero(curr,sizeof(*curr));
 		free(prev);
 	}
 	bzero(ts,sizeof(*ts));
