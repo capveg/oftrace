@@ -80,10 +80,12 @@ oftrace * oftrace_open(char * filename)
 	oft = malloc_and_check(sizeof(oftrace));
 	bzero(oft,sizeof(oftrace));
 
-        if(filename==NULL)
+        if(filename==NULL) {
             pcap = stdin;
-        else
+            filename = "(stdin)";
+        } else {
             pcap = fopen(filename,"r");
+        }
 
 	if(!pcap)
 	{
