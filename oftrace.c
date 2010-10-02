@@ -79,7 +79,12 @@ oftrace * oftrace_open(char * filename)
 	int err;
 	oft = malloc_and_check(sizeof(oftrace));
 	bzero(oft,sizeof(oftrace));
-	pcap = fopen(filename,"r");
+
+        if(filename==NULL)
+            pcap = stdin;
+        else
+            pcap = fopen(filename,"r");
+
 	if(!pcap)
 	{
 		fprintf(stderr,"Failed to open %s ; exiting\n",filename);
