@@ -88,7 +88,7 @@ struct dlt_linux_sll	// copied from http://www.mail-archive.com/tcpdump-workers@
 
 typedef union openflow_msg_ptr {
 	struct ofp_stats_request * stats_req;
-	struct ofp_flow_expired * flow_exp;
+	struct ofp_flow_removed * flow_exp;
 	struct ofp_packet_in * packet_in;
 	struct ofp_packet_out * packet_out;
 	struct ofp_flow_mod * flow_mod;
