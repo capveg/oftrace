@@ -93,7 +93,7 @@ int do_analyze(oftrace * oft, uint32_t ip, int port)
 	char src_ip[BUFLEN];
 	struct timeval start,diff;
 	start.tv_sec = start.tv_usec= 0;	
-	memset(&m,sizeof(m),0);	// zero msg contents
+	memset(&m, 0, sizeof(m));	// zero msg contents
 	// for each openflow msg
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
