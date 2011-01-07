@@ -108,7 +108,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 	uint32_t id;
 	buffer_id * b, *b_list, *b_prev;
 	b_list = NULL;
-	memset(&m,sizeof(m),0);	// zero msg contents
+	memset(&m, 0, sizeof(m));	// zero msg contents
 	// for each openflow msg
 	while( (m = oftrace_next_msg(oft, ip, port)) != NULL)
 	{
