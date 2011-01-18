@@ -128,7 +128,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 					b->dip = m->ip->daddr;
 					b->sport = m->tcp->source;
 					b->dport = m->tcp->dest;
-					b->b_id = m->ptr.packet_in->buffer_id;
+					b->b_id = ntohl(m->ptr.packet_in->buffer_id);
 					b->ts.tv_sec = m->phdr.ts_sec;
 					b->ts.tv_usec = m->phdr.ts_usec;
 					b->datalen = ntohs(m->ofph->length) - offsetof(struct ofp_packet_in,data);
@@ -144,9 +144,9 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 				inet_ntop(AF_INET,&m->ip->saddr,src_ip,BUFLEN);
 				inet_ntop(AF_INET,&m->ip->daddr,dst_ip,BUFLEN);
 				if(m->type == OFPT_PACKET_OUT)
-					id = m->ptr.packet_out->buffer_id;
+				        id = ntohl(m->ptr.packet_out->buffer_id);
 				else
-					id = m->ptr.flow_mod->buffer_id;
+       				        id = ntohl(m->ptr.flow_mod->buffer_id);
 				// now find this buffer_id in the list
 				b_prev=NULL;
 				b= b_list;
@@ -177,7 +177,7 @@ int calc_stats(oftrace * oft, uint32_t ip, int port)
 						b_prev->next=b->next;
 					else
 						b_list=b->next;
-					printf("%ld.%.6ld 	secs_to_resp buf_id=%d in flow %s:%u -> %s:%u - %s - %d queued\n",
+					printf("%ld.%.6ld 	secs_to_resp buf_id=%u in flow %s:%u -> %s:%u - %s - %d queued\n",
 							diff.tv_sec, diff.tv_usec,
 							id,
 							src_ip, ntohs(m->tcp->source),
