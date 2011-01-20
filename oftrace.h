@@ -54,7 +54,7 @@ without specific, written prior permission.
 #ifndef DLT_EN10MB
 #define DLT_EN10MB      1       /* Ethernet (10Mb) */
 #endif
-#ifndef DLT_LINUX_SSL 
+#ifndef DLT_LINUX_SLL 
 #define DLT_LINUX_SLL   113
 #endif
 

@@ -362,6 +362,8 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	if(ts->n_segs < OFTRACE_QUEUE_LIMIT)	// make sure we have ~200+ queued segments 
 		return 0;	// before we even think about this test
 	curr = ts->next;
+    assert(curr);
+
 	ofph = (struct ofp_header * ) curr->data;
 	inet_ntop(AF_INET,&ts->sip,srcaddr,BUFLEN);
 	inet_ntop(AF_INET,&ts->dip,dstaddr,BUFLEN);
@@ -377,7 +379,9 @@ static int pcap_dropped_segment_test(tcp_session * ts)
 	else
 	{
 		ts->next = curr->next;
+        assert(ts->next);
 		ts->seqno = ts->next->start_seq;
+        ts->n_segs--;
 		free(curr);
 		what_skipped = "a tcp segment";
 	}
