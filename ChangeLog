@@ -1,3 +1,4 @@
+	- added support to compile on MacOSX
 	- added DLT_LINUX_SLL support
 	- added support for parsing files >2GB
 	- added lldp_stats.py tool
