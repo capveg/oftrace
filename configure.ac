@@ -112,6 +112,8 @@ fi
 
 # Checks for header files.
 AC_CHECK_HEADERS([config.h])
+AC_CHECK_HEADERS([malloc.h])
+AC_CHECK_HEADERS([malloc/malloc.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

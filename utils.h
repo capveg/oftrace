@@ -34,7 +34,11 @@ without specific, written prior permission.
 #define UTILS_H
 
 #include <errno.h>
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#elif HAVE_MALLOC_MALLOC_H
+#include <malloc/malloc.h>
+#endif
 #include <stdio.h>
 #include <stdint.h>
 
