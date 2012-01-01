@@ -79,7 +79,6 @@ AC_PROG_CPP
 AC_PROG_LIBTOOL
 AC_PROG_CXX
 AC_PROG_LIBTOOL
-AC_PYTHON_DEVEL
 
 # ??? automake told me to add this..
 AM_PROG_CC_C_O
@@ -87,9 +86,18 @@ AM_PROG_CC_C_O
 #custom
 LARGE_FILES
 
-dnl check whether python extension is enabled and accordingly set swig
-#m4_pattern_allow(AC_PROG_SWIG)
-if test -n "$PYTHON"; then
+dnl Enable swig support
+AC_ARG_ENABLE(swig,
+	[AS_HELP_STRING([--disable-swig],
+			[disable SWIG (default is enabled)])],
+	[case "${enableval}" in
+		(yes) enable_swig=true ;;
+		(no)  enable_swig=false ;;
+		(*) AC_MSG_ERROR([bad value ${enableval} for --enable-swig]) ;;
+		esac],
+	[enable_swig=true])
+if test "$enable_swig" = true; then
+   AC_PYTHON_DEVEL
    AC_PROG_SWIG(1.3.0)
    if test -z "$SWIG"; then
 	  AC_MSG_ERROR([swig 1.3.0 or later required - please install])
@@ -97,7 +105,7 @@ if test -n "$PYTHON"; then
    AM_PATH_PYTHON(2.5)
    SWIG_PYTHON
 else
-	echo "NO PYTHON SUPPORT; NOT CONFIGURING SWIG!!!"
+   AC_MSG_NOTICE([SWIG support has been disabled])
 fi
 
 # Checks for libraries.
