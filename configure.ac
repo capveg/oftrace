@@ -115,6 +115,17 @@ AC_CHECK_HEADERS([config.h])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([malloc/malloc.h])
 
+# Check for necessary defines
+AC_CHECK_DECLS([[ETH_ALEN]], [], [], [[#include <net/ethernet.h>]])
+AC_CHECK_DECLS([[ETHER_ADDR_LEN]],
+	[if test "$ac_cv_have_decl_eth_alen" != yes ; then
+	        AC_DEFINE([ETH_ALEN], [ETHER_ADDR_LEN])
+	fi],
+	[if test "$ac_cv_have_decl_eth_alen" != yes ; then
+	        AC_MSG_ERROR([neither ETH_ALEN or ETH_ADDR_LEN are defined])
+	fi],
+	[[#include <net/ethernet.h>]])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 
