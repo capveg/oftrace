@@ -35,5 +35,20 @@ ofstats: (python version: pyofstats.py)
 	time between packet_in and corresponding packet_out or
 	flow_mod 
 
+
+Mac OS X support
+----------------
+liboftrace has been tested with Mac OS X. SWIG is required to build Python
+support. It is recommended to use the MacPorts package management system to
+install SWIG.
+
+SWIG can be installed via MacPorts as follows:
+   1. Download the latest version MacPorts
+      (http://www.macports.org/install.php)
+   2. Install MacPorts
+   3. Open a terminal window and run:
+        sudo port -v selfupdate
+        sudo port install swig-python
+
 ------------------------------
 - capveg 03/09
