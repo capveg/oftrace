@@ -37,6 +37,7 @@ without specific, written prior permission.
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 
