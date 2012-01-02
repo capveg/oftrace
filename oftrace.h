@@ -41,7 +41,9 @@ without specific, written prior permission.
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 
+#ifdef HAVE_FEATURES_H
 #include <features.h>
+#endif
 
 #include <pcap.h>
 //#include <pcap-bpf.h>

@@ -114,6 +114,7 @@ fi
 AC_CHECK_HEADERS([config.h])
 AC_CHECK_HEADERS([malloc.h])
 AC_CHECK_HEADERS([malloc/malloc.h])
+AC_CHECK_HEADERS([features.h])
 
 # Check for necessary defines
 AC_CHECK_DECLS([[ETH_ALEN]], [], [], [[#include <net/ethernet.h>]])
